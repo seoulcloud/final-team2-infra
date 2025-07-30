@@ -1,0 +1,59 @@
+# Team Environment Configuration Example
+# Copy this file to terraform.tfvars and modify values as needed
+# DO NOT commit terraform.tfvars to version control
+
+# Basic Configuration
+aws_region   = "ap-northeast-2"
+environment  = "team"
+project_name = "team2-infra"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+
+# Subnet Configuration (Production Scale)
+eks_private_subnets        = ["10.0.10.0/24", "10.0.11.0/24"]  # EKS-private-subnet-az1/az2
+postgresql_private_subnets = ["10.0.20.0/24", "10.0.21.0/24"]  # PostgreSQL-private-subnet-az1/az2
+mongodb_private_subnets    = ["10.0.30.0/24", "10.0.31.0/24"]  # MongoDB-private-subnet-az1/az2
+
+# SSM Configuration
+enable_ssm_endpoints = true
+enable_ssm_access    = true
+
+# EKS Configuration (Production Scale)
+eks_cluster_version = "1.28"
+
+# EKS Node Groups (Production Scale)
+eks_node_groups = {
+  general = {
+    instance_types = ["t3.medium", "t3.large"] # Production scale instances
+    min_size      = 2
+    max_size      = 10                          # Higher max for production
+    desired_size  = 3                           # Higher desired for production
+    disk_size     = 50                          # Larger disk for production
+    ami_type      = "AL2_x86_64"
+    capacity_type = "ON_DEMAND"                 # On-demand for production stability
+  }
+  compute = {
+    instance_types = ["c5.large", "c5.xlarge"] # Compute optimized nodes
+    min_size      = 1
+    max_size      = 5
+    desired_size  = 2
+    disk_size     = 50
+    ami_type      = "AL2_x86_64"
+    capacity_type = "SPOT"                      # Mix of spot for cost optimization
+  }
+}
+
+# Database Passwords (Set via environment variables - see scripts/set-env-vars.ps1)
+# db_password_postgresql = ""  # Will be set via TF_VAR_db_password_postgresql
+# db_password_mongodb    = ""  # Will be set via TF_VAR_db_password_mongodb
+
+# Common Tags
+common_tags = {
+  Environment = "team"
+  Project     = "team2-infra"
+  ManagedBy   = "terraform"
+  CostCenter  = "production"
+  Owner       = "team2"
+  Account     = "team-production"
+} 
