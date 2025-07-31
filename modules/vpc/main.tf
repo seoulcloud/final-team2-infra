@@ -91,7 +91,7 @@ resource "aws_subnet" "public" {
   count = 2
 
   vpc_id                  = aws_vpc.main.id
-  cidr_block             = cidrsubnet(var.vpc_cidr, 8, count.index)  # 10.0.0.0/24, 10.0.1.0/24
+  cidr_block             = cidrsubnet(var.vpc_cidr, var.public_subnet_newbits, count.index)
   availability_zone      = local.azs[count.index]
   map_public_ip_on_launch = true
 
@@ -120,7 +120,7 @@ resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block = "0.0.0.0/0"
+    cidr_block = var.internet_cidr
     gateway_id = aws_internet_gateway.main.id
   }
 
@@ -145,7 +145,7 @@ resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block     = "0.0.0.0/0"
+    cidr_block     = var.internet_cidr
     nat_gateway_id = aws_nat_gateway.main[count.index].id
   }
 
@@ -195,16 +195,7 @@ resource "aws_vpc_endpoint" "ssm" {
       {
         Effect = "Allow"
         Principal = "*"
-        Action = [
-          "ssm:StartSession",
-          "ssm:SendCommand",
-          "ssm:GetCommandInvocation",
-          "ssm:DescribeInstanceInformation",
-          "ssm:ListCommandInvocations",
-          "ssm:ListCommands",
-          "ssm:DescribeInstanceAssociationsStatus",
-          "ssm:GetConnectionStatus"
-        ]
+        Action = var.ssm_actions
         Resource = "*"
       }
     ]
@@ -254,8 +245,8 @@ resource "aws_security_group" "ssm_endpoint" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    from_port   = 443
-    to_port     = 443
+    from_port   = var.https_port
+    to_port     = var.https_port
     protocol    = "tcp"
     cidr_blocks = [var.vpc_cidr]
     description = "HTTPS from VPC"
@@ -265,7 +256,7 @@ resource "aws_security_group" "ssm_endpoint" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.internet_cidr]
     description = "All outbound traffic"
   }
 

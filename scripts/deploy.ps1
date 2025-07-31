@@ -15,6 +15,16 @@ param(
     [switch]$SkipValidation
 )
 
+# Configuration Variables (Centralized)
+$Config = @{
+    ProjectName = "team2-infra"
+    Region      = "ap-northeast-2"
+    Profiles    = @{
+        personal = "personal"
+        team     = "default"
+    }
+}
+
 # Colors for output
 $Green = "Green"
 $Red = "Red"
@@ -36,24 +46,24 @@ function Show-Banner {
 
 # Function to check prerequisites
 function Test-Prerequisites {
-    Write-Host "🔍 Checking prerequisites..." -ForegroundColor $Yellow
+    Write-Host "Checking prerequisites..." -ForegroundColor $Yellow
     
     # Check if Terraform is installed
     try {
         $tfVersion = terraform version
-        Write-Host "✅ Terraform found: $($tfVersion[0])" -ForegroundColor $Green
+        Write-Host "SUCCESS: Terraform found: $($tfVersion[0])" -ForegroundColor $Green
     } catch {
-        Write-Host "❌ Terraform not found. Please install Terraform first." -ForegroundColor $Red
+        Write-Host "ERROR: Terraform not found. Please install Terraform first." -ForegroundColor $Red
         exit 1
     }
     
     # Check if AWS CLI is configured
     try {
-        $awsProfile = if ($Environment -eq "personal") { "personal" } else { "default" }
+        $awsProfile = $Config.Profiles[$Environment]
         aws sts get-caller-identity --profile $awsProfile | Out-Null
-        Write-Host "✅ AWS CLI configured for profile: $awsProfile" -ForegroundColor $Green
+        Write-Host "SUCCESS: AWS CLI configured for profile: $awsProfile" -ForegroundColor $Green
     } catch {
-        Write-Host "❌ AWS CLI not configured for profile: $awsProfile" -ForegroundColor $Red
+        Write-Host "ERROR: AWS CLI not configured for profile: $awsProfile" -ForegroundColor $Red
         Write-Host "Please run: aws configure --profile $awsProfile" -ForegroundColor $Yellow
         exit 1
     }
@@ -61,13 +71,13 @@ function Test-Prerequisites {
     # Check if environment variables are set (for apply/plan)
     if ($Action -in @("plan", "apply")) {
         if (-not $env:TF_VAR_db_password_postgresql -or -not $env:TF_VAR_db_password_mongodb) {
-            Write-Host "⚠️  Database passwords not set. Run set-env-vars.ps1 first:" -ForegroundColor $Yellow
+            Write-Host "WARNING: Database passwords not set. Run set-env-vars.ps1 first:" -ForegroundColor $Yellow
             Write-Host ".\scripts\set-env-vars.ps1 -Environment $Environment" -ForegroundColor $Gray
             if (-not $SkipValidation) {
                 exit 1
             }
         } else {
-            Write-Host "✅ Database environment variables are set" -ForegroundColor $Green
+            Write-Host "SUCCESS: Database environment variables are set" -ForegroundColor $Green
         }
     }
     
@@ -83,7 +93,7 @@ function Invoke-TerraformCommand {
     
     Push-Location $WorkingDirectory
     try {
-        Write-Host "🚀 Executing: $Command" -ForegroundColor $Cyan
+        Write-Host "Executing: $Command" -ForegroundColor $Cyan
         Write-Host ""
         
         # Execute the command
@@ -91,11 +101,11 @@ function Invoke-TerraformCommand {
         
         if ($LASTEXITCODE -ne 0) {
             Write-Host ""
-            Write-Host "❌ Command failed with exit code: $LASTEXITCODE" -ForegroundColor $Red
+            Write-Host "ERROR: Command failed with exit code: $LASTEXITCODE" -ForegroundColor $Red
             exit $LASTEXITCODE
         } else {
             Write-Host ""
-            Write-Host "✅ Command completed successfully!" -ForegroundColor $Green
+            Write-Host "SUCCESS: Command completed successfully!" -ForegroundColor $Green
         }
     } finally {
         Pop-Location
@@ -108,30 +118,30 @@ Show-Banner "Terraform Deployment Script - $Environment Environment"
 # Set working directory
 $workingDir = "environments\$Environment"
 if (-not (Test-Path $workingDir)) {
-    Write-Host "❌ Environment directory not found: $workingDir" -ForegroundColor $Red
+    Write-Host "ERROR: Environment directory not found: $workingDir" -ForegroundColor $Red
     exit 1
 }
 
-Write-Host "📁 Working directory: $workingDir" -ForegroundColor $Cyan
-Write-Host "🎯 Action: $Action" -ForegroundColor $Cyan
+Write-Host "Working directory: $workingDir" -ForegroundColor $Cyan
+Write-Host "Action: $Action" -ForegroundColor $Cyan
 
 # Check prerequisites
 Test-Prerequisites
 
 # Confirmation for destructive actions
 if ($Action -in @("apply", "destroy") -and -not $AutoApprove) {
-    Show-Banner "⚠️  CONFIRMATION REQUIRED" "Yellow"
+    Show-Banner "CONFIRMATION REQUIRED" "Yellow"
     Write-Host "You are about to run 'terraform $Action' on the $Environment environment." -ForegroundColor $Yellow
     Write-Host ""
     
     if ($Action -eq "destroy") {
-        Write-Host "🚨 WARNING: This will DESTROY all resources in this environment!" -ForegroundColor $Red
+        Write-Host "WARNING: This will DESTROY all resources in this environment!" -ForegroundColor $Red
         Write-Host ""
     }
     
-    $confirmation = Read-Host "빌드를 시작할까요? (y/n)"
+    $confirmation = Read-Host "Do you want to proceed? (y/n)"
     if ($confirmation -ne 'y' -and $confirmation -ne 'Y') {
-        Write-Host "❌ Operation cancelled by user." -ForegroundColor $Red
+        Write-Host "ERROR: Operation cancelled by user." -ForegroundColor $Red
         exit 0
     }
 }
@@ -157,7 +167,7 @@ switch ($Action) {
         Show-Banner "Planning Terraform Deployment"
         
         # Run additional checks before planning
-        Write-Host "🔍 Running pre-plan checks..." -ForegroundColor $Yellow
+        Write-Host "Running pre-plan checks..." -ForegroundColor $Yellow
         Invoke-TerraformCommand "terraform fmt -check" $workingDir
         Invoke-TerraformCommand "terraform validate" $workingDir
         
@@ -166,7 +176,7 @@ switch ($Action) {
         Invoke-TerraformCommand "terraform plan -out=$planFile" $workingDir
         
         Write-Host ""
-        Write-Host "📊 Plan saved to: $planFile" -ForegroundColor $Green
+        Write-Host "Plan saved to: $planFile" -ForegroundColor $Green
         Write-Host "To apply this plan, run:" -ForegroundColor $Yellow
         Write-Host "terraform apply $planFile" -ForegroundColor $Gray
     }
@@ -175,7 +185,7 @@ switch ($Action) {
         Show-Banner "Applying Terraform Configuration"
         
         # Run pre-apply checks
-        Write-Host "🔍 Running pre-apply checks..." -ForegroundColor $Yellow
+        Write-Host "Running pre-apply checks..." -ForegroundColor $Yellow
         Invoke-TerraformCommand "terraform fmt -check" $workingDir
         Invoke-TerraformCommand "terraform validate" $workingDir
         
@@ -204,13 +214,16 @@ switch ($Action) {
 }
 
 # Final message
-Show-Banner "🎉 Operation Completed Successfully!" "Green"
+Show-Banner "Operation Completed Successfully!" "Green"
 
 if ($Action -eq "apply") {
-    Write-Host "📋 Next Steps:" -ForegroundColor $Yellow
+    $profile = $Config.Profiles[$Environment]
+    $clusterName = "$($Config.ProjectName)-$Environment-cluster"
+    
+    Write-Host "Next Steps:" -ForegroundColor $Yellow
     Write-Host "1. Verify resources in AWS Console" -ForegroundColor $White
     Write-Host "2. Test SSM connectivity:" -ForegroundColor $White
-    Write-Host "   aws ec2 describe-instances --filters 'Name=tag:kubernetes.io/cluster/team2-infra-$Environment-cluster,Values=owned' --query 'Reservations[].Instances[].InstanceId' --output table --profile $(if ($Environment -eq 'personal') { 'personal' } else { 'default' })" -ForegroundColor $Gray
+    Write-Host "   aws ec2 describe-instances --filters 'Name=tag:kubernetes.io/cluster/$clusterName,Values=owned' --query 'Reservations[].Instances[].InstanceId' --output table --profile $profile" -ForegroundColor $Gray
     Write-Host "3. Configure kubectl:" -ForegroundColor $White
-    Write-Host "   aws eks update-kubeconfig --region ap-northeast-2 --name team2-infra-$Environment-cluster --profile $(if ($Environment -eq 'personal') { 'personal' } else { 'default' })" -ForegroundColor $Gray
+    Write-Host "   aws eks update-kubeconfig --region $($Config.Region) --name $clusterName --profile $profile" -ForegroundColor $Gray
 } 

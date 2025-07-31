@@ -8,7 +8,7 @@ param(
     [string]$Environment
 )
 
-Write-Host "🔑 Setting up database password environment variables for $Environment environment" -ForegroundColor Green
+Write-Host "Setting up database password environment variables for $Environment environment" -ForegroundColor Green
 Write-Host ""
 
 # Function to read secure password
@@ -73,13 +73,13 @@ Write-Host "Environment: $Environment" -ForegroundColor Cyan
 Write-Host ""
 
 # PostgreSQL Password
-Write-Host "📊 Setting PostgreSQL password..." -ForegroundColor Yellow
+Write-Host "Setting PostgreSQL password..." -ForegroundColor Yellow
 do {
     $postgresPassword = Read-SecurePassword "Enter PostgreSQL database password"
     $validation = Test-PasswordStrength -Password $postgresPassword
     
     if (-not $validation.IsValid) {
-        Write-Host "❌ Password validation failed:" -ForegroundColor Red
+        Write-Host "ERROR: Password validation failed:" -ForegroundColor Red
         $validation.Issues | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
         Write-Host ""
     }
@@ -87,20 +87,20 @@ do {
 
 # MongoDB Password
 Write-Host ""
-Write-Host "🍃 Setting MongoDB password..." -ForegroundColor Yellow
+Write-Host "Setting MongoDB password..." -ForegroundColor Yellow
 do {
     $mongoPassword = Read-SecurePassword "Enter MongoDB database password"
     $validation = Test-PasswordStrength -Password $mongoPassword
     
     if (-not $validation.IsValid) {
-        Write-Host "❌ Password validation failed:" -ForegroundColor Red
+        Write-Host "ERROR: Password validation failed:" -ForegroundColor Red
         $validation.Issues | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
         Write-Host ""
     }
 } while (-not $validation.IsValid)
 
 Write-Host ""
-Write-Host "🔧 Setting environment variables..." -ForegroundColor Green
+Write-Host "Setting environment variables..." -ForegroundColor Green
 
 # Set environment variables for current session
 $env:TF_VAR_db_password_postgresql = $postgresPassword
@@ -110,17 +110,17 @@ $env:TF_VAR_db_password_mongodb = $mongoPassword
 [Environment]::SetEnvironmentVariable("TF_VAR_db_password_postgresql", $postgresPassword, "User")
 [Environment]::SetEnvironmentVariable("TF_VAR_db_password_mongodb", $mongoPassword, "User")
 
-Write-Host "✅ Environment variables set successfully!" -ForegroundColor Green
+Write-Host "SUCCESS: Environment variables set successfully!" -ForegroundColor Green
 Write-Host ""
 
 # Display current environment variables (masked)
-Write-Host "📋 Current Terraform variables:" -ForegroundColor Cyan
+Write-Host "Current Terraform variables:" -ForegroundColor Cyan
 Write-Host "  TF_VAR_db_password_postgresql = $('*' * $postgresPassword.Length)" -ForegroundColor Gray
 Write-Host "  TF_VAR_db_password_mongodb = $('*' * $mongoPassword.Length)" -ForegroundColor Gray
 Write-Host ""
 
 # Instructions
-Write-Host "📝 Next Steps:" -ForegroundColor Yellow
+Write-Host "Next Steps:" -ForegroundColor Yellow
 Write-Host "1. Navigate to the environment directory:" -ForegroundColor White
 Write-Host "   cd environments\$environment" -ForegroundColor Gray
 Write-Host ""
@@ -135,11 +135,14 @@ Write-Host ""
 Write-Host "5. Plan the deployment:" -ForegroundColor White
 Write-Host "   terraform plan" -ForegroundColor Gray
 Write-Host ""
-Write-Host "⚠️  Remember: Never commit terraform.tfvars to version control!" -ForegroundColor Red
+Write-Host "WARNING: Never commit terraform.tfvars to version control!" -ForegroundColor Red
 
 # Clear sensitive variables from memory
 $postgresPassword = $null
 $mongoPassword = $null
 
 Write-Host ""
-Write-Host "🎉 Setup completed for $environment environment!" -ForegroundColor Green 
+Write-Host "Setup completed for $environment environment!" -ForegroundColor Green
+
+# Explicitly exit with success code
+exit 0 

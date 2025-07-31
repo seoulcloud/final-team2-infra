@@ -39,6 +39,25 @@ variable "cluster_version" {
   default     = "1.28"
 }
 
+# Network Configuration
+variable "internet_cidr" {
+  description = "CIDR block for internet access"
+  type        = string
+  default     = "0.0.0.0/0"
+}
+
+variable "https_port" {
+  description = "HTTPS port for security groups"
+  type        = number
+  default     = 443
+}
+
+variable "high_port" {
+  description = "High port range for security groups"
+  type        = number
+  default     = 65535
+}
+
 # Node Groups Configuration
 variable "node_groups" {
   description = "EKS node groups configuration"
@@ -52,6 +71,66 @@ variable "node_groups" {
     capacity_type = string
   }))
   default = {}
+}
+
+variable "max_unavailable_percentage" {
+  description = "Maximum percentage of nodes unavailable during update"
+  type        = number
+  default     = 25
+}
+
+# Launch Template Configuration
+variable "instance_metadata_options" {
+  description = "Instance metadata service options"
+  type = object({
+    http_endpoint               = string
+    http_tokens                 = string
+    http_put_response_hop_limit = number
+    instance_metadata_tags      = string
+  })
+  default = {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+    instance_metadata_tags      = "enabled"
+  }
+}
+
+variable "monitoring_enabled" {
+  description = "Enable detailed monitoring for instances"
+  type        = bool
+  default     = true
+}
+
+# EKS Add-ons Configuration
+variable "addon_resolve_conflicts" {
+  description = "How to resolve parameter value conflicts for EKS add-ons"
+  type        = string
+  default     = "OVERWRITE"
+  validation {
+    condition     = contains(["OVERWRITE", "PRESERVE"], var.addon_resolve_conflicts)
+    error_message = "addon_resolve_conflicts must be either OVERWRITE or PRESERVE."
+  }
+}
+
+variable "cluster_log_types" {
+  description = "List of control plane logging types to enable"
+  type        = list(string)
+  default     = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+}
+
+variable "cluster_endpoint_config" {
+  description = "EKS cluster endpoint configuration"
+  type = object({
+    private_access = bool
+    public_access  = bool
+    public_access_cidrs = list(string)
+  })
+  default = {
+    private_access = true
+    public_access  = true
+    public_access_cidrs = ["0.0.0.0/0"]  # TODO: Restrict this in production
+  }
 }
 
 # SSM Configuration

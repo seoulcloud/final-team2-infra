@@ -9,13 +9,15 @@ terraform {
   }
   
   # Backend configuration for state management
-  backend "s3" {
-    # bucket = "terraform-state-team-team2" # 환경변수로 설정
-    # key    = "team/terraform.tfstate"
-    # region = "ap-northeast-2"
-    # dynamodb_table = "terraform-lock-team-team2"
-    # encrypt = true
-  }
+  # Using local state for development
+  # Uncomment below for S3 remote state:
+  # backend "s3" {
+  #   bucket         = "terraform-state-team-team2"
+  #   key            = "team/terraform.tfstate"
+  #   region         = "ap-northeast-2"
+  #   dynamodb_table = "terraform-lock-team-team2"
+  #   encrypt        = true
+  # }
 }
 
 # Configure AWS Provider for Team Account
@@ -46,6 +48,9 @@ module "vpc" {
   # VPC Configuration (Production Scale)
   vpc_cidr = var.vpc_cidr
   
+  # Network Configuration
+  internet_cidr = var.internet_cidr
+  
   # Subnet Configuration - 6 Private Subnets
   eks_private_subnets        = var.eks_private_subnets
   postgresql_private_subnets = var.postgresql_private_subnets
@@ -75,8 +80,22 @@ module "eks" {
   # EKS Configuration (Production Scale)
   cluster_version = var.eks_cluster_version
   
+  # Network Configuration
+  internet_cidr = var.internet_cidr
+  
+  # Cluster Endpoint Configuration
+  cluster_endpoint_config = {
+    private_access      = true
+    public_access       = true
+    public_access_cidrs = var.cluster_endpoint_public_access_cidrs
+  }
+  
   # Node Group Configuration (Production Scale)
   node_groups = var.eks_node_groups
+  max_unavailable_percentage = var.max_unavailable_percentage
+  
+  # Monitoring Configuration (Production)
+  monitoring_enabled = var.enable_detailed_monitoring
   
   # SSM Access
   enable_ssm_access = var.enable_ssm_access

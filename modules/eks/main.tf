@@ -118,7 +118,7 @@ resource "aws_security_group" "cluster" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.internet_cidr]
     description = "All outbound traffic"
   }
 
@@ -140,7 +140,7 @@ resource "aws_security_group" "node_group" {
   # Allow inbound traffic from cluster security group
   ingress {
     from_port       = 0
-    to_port         = 65535
+    to_port         = var.high_port
     protocol        = "tcp"
     security_groups = [aws_security_group.cluster.id]
     description     = "Allow all TCP from cluster security group"
@@ -149,7 +149,7 @@ resource "aws_security_group" "node_group" {
   # Allow nodes to communicate with each other
   ingress {
     from_port = 0
-    to_port   = 65535
+    to_port   = var.high_port
     protocol  = "tcp"
     self      = true
     description = "Allow nodes to communicate with each other"
@@ -160,14 +160,14 @@ resource "aws_security_group" "node_group" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.internet_cidr]
     description = "All outbound traffic"
   }
 
   # HTTPS for SSM communication
   ingress {
-    from_port   = 443
-    to_port     = 443
+    from_port   = var.https_port
+    to_port     = var.https_port
     protocol    = "tcp"
     cidr_blocks = [var.vpc_cidr]
     description = "HTTPS for SSM"
@@ -183,11 +183,11 @@ resource "aws_security_group" "node_group" {
   }
 }
 
-# Security group rules for cluster to communicate with nodes
+  # Security group rules for cluster to communicate with nodes
 resource "aws_security_group_rule" "cluster_to_node" {
   type                     = "ingress"
   from_port                = 0
-  to_port                  = 65535
+  to_port                  = var.high_port
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.node_group.id
   security_group_id        = aws_security_group.cluster.id
@@ -203,13 +203,13 @@ resource "aws_eks_cluster" "main" {
   vpc_config {
     subnet_ids              = var.eks_private_subnets
     security_group_ids      = [aws_security_group.cluster.id]
-    endpoint_private_access = true
-    endpoint_public_access  = true  # Enable public access for initial setup, can be disabled later
-    public_access_cidrs     = ["0.0.0.0/0"]  # TODO: Restrict this in production
+    endpoint_private_access = var.cluster_endpoint_config.private_access
+    endpoint_public_access  = var.cluster_endpoint_config.public_access
+    public_access_cidrs     = var.cluster_endpoint_config.public_access_cidrs
   }
 
   # Enable EKS cluster logging
-  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+  enabled_cluster_log_types = var.cluster_log_types
 
   depends_on = [
     aws_iam_role_policy_attachment.cluster_policy,
@@ -245,7 +245,7 @@ resource "aws_eks_node_group" "main" {
 
   # Update configuration
   update_config {
-    max_unavailable_percentage = 25
+    max_unavailable_percentage = var.max_unavailable_percentage
   }
 
   # Remote access configuration (for SSM)
@@ -297,15 +297,15 @@ resource "aws_launch_template" "node_group" {
 
   # Instance metadata options
   metadata_options {
-    http_endpoint               = "enabled"
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 2
-    instance_metadata_tags      = "enabled"
+    http_endpoint               = var.instance_metadata_options.http_endpoint
+    http_tokens                 = var.instance_metadata_options.http_tokens
+    http_put_response_hop_limit = var.instance_metadata_options.http_put_response_hop_limit
+    instance_metadata_tags      = var.instance_metadata_options.instance_metadata_tags
   }
 
   # Monitoring
   monitoring {
-    enabled = true
+    enabled = var.monitoring_enabled
   }
 
   tag_specifications {
@@ -340,8 +340,8 @@ resource "aws_eks_addon" "vpc_cni" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "vpc-cni"
   
-  resolve_conflicts_on_create = "OVERWRITE"
-  resolve_conflicts_on_update = "OVERWRITE"
+  resolve_conflicts_on_create = var.addon_resolve_conflicts
+  resolve_conflicts_on_update = var.addon_resolve_conflicts
   
   tags = merge(var.common_tags, {
     Name = "${var.cluster_name}-vpc-cni"
@@ -353,8 +353,8 @@ resource "aws_eks_addon" "coredns" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "coredns"
   
-  resolve_conflicts_on_create = "OVERWRITE"
-  resolve_conflicts_on_update = "OVERWRITE"
+  resolve_conflicts_on_create = var.addon_resolve_conflicts
+  resolve_conflicts_on_update = var.addon_resolve_conflicts
   
   depends_on = [aws_eks_node_group.main]
   
@@ -368,8 +368,8 @@ resource "aws_eks_addon" "kube_proxy" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "kube-proxy"
   
-  resolve_conflicts_on_create = "OVERWRITE"
-  resolve_conflicts_on_update = "OVERWRITE"
+  resolve_conflicts_on_create = var.addon_resolve_conflicts
+  resolve_conflicts_on_update = var.addon_resolve_conflicts
   
   tags = merge(var.common_tags, {
     Name = "${var.cluster_name}-kube-proxy"
@@ -382,8 +382,8 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "aws-ebs-csi-driver"
   
-  resolve_conflicts_on_create = "OVERWRITE"
-  resolve_conflicts_on_update = "OVERWRITE"
+  resolve_conflicts_on_create = var.addon_resolve_conflicts
+  resolve_conflicts_on_update = var.addon_resolve_conflicts
   
   tags = merge(var.common_tags, {
     Name = "${var.cluster_name}-ebs-csi-driver"

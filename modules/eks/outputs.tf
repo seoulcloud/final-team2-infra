@@ -107,9 +107,25 @@ output "ssm_connection_guide" {
 output "addon_status" {
   description = "Status of EKS add-ons"
   value = {
-    vpc_cni         = aws_eks_addon.vpc_cni.status
-    coredns         = aws_eks_addon.coredns.status
-    kube_proxy      = aws_eks_addon.kube_proxy.status
-    ebs_csi_driver  = aws_eks_addon.ebs_csi_driver.status
+    vpc_cni = {
+      addon_name    = aws_eks_addon.vpc_cni.addon_name
+      addon_version = aws_eks_addon.vpc_cni.addon_version
+      arn          = aws_eks_addon.vpc_cni.arn
+    }
+    coredns = {
+      addon_name    = aws_eks_addon.coredns.addon_name
+      addon_version = aws_eks_addon.coredns.addon_version
+      arn          = aws_eks_addon.coredns.arn
+    }
+    kube_proxy = {
+      addon_name    = aws_eks_addon.kube_proxy.addon_name
+      addon_version = aws_eks_addon.kube_proxy.addon_version
+      arn          = aws_eks_addon.kube_proxy.arn
+    }
+    ebs_csi_driver = {
+      addon_name    = aws_eks_addon.ebs_csi_driver.addon_name
+      addon_version = aws_eks_addon.ebs_csi_driver.addon_version
+      arn          = aws_eks_addon.ebs_csi_driver.arn
+    }
   }
 } 

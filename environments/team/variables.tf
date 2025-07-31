@@ -45,6 +45,19 @@ variable "mongodb_private_subnets" {
   default     = ["10.0.30.0/24", "10.0.31.0/24"]  # MongoDB subnets
 }
 
+# Network Security Configuration (Team - Production Ready)
+variable "internet_cidr" {
+  description = "CIDR block for internet access"
+  type        = string
+  default     = "0.0.0.0/0"
+}
+
+variable "cluster_endpoint_public_access_cidrs" {
+  description = "CIDR blocks allowed to access EKS cluster endpoint"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]  # TODO: Restrict to office/VPN IPs in production
+}
+
 # SSM Configuration
 variable "enable_ssm_endpoints" {
   description = "Enable SSM VPC endpoints for private subnet access"
@@ -98,6 +111,38 @@ variable "eks_node_groups" {
   }
 }
 
+# EKS Advanced Configuration (Production Environment)
+variable "max_unavailable_percentage" {
+  description = "Maximum percentage of nodes unavailable during update"
+  type        = number
+  default     = 25  # Conservative for production stability
+}
+
+variable "cluster_log_retention_days" {
+  description = "Number of days to retain cluster logs"
+  type        = number
+  default     = 30  # Longer retention for production
+}
+
+variable "enable_detailed_monitoring" {
+  description = "Enable detailed monitoring for production visibility"
+  type        = bool
+  default     = true  # Enable for production monitoring
+}
+
+# High Availability Configuration
+variable "enable_multi_az_deployment" {
+  description = "Enable multi-AZ deployment for high availability"
+  type        = bool
+  default     = true
+}
+
+variable "backup_retention_days" {
+  description = "Number of days to retain backups"
+  type        = number
+  default     = 30
+}
+
 # Database Configuration (for future use)
 variable "db_password_postgresql" {
   description = "PostgreSQL database password"
@@ -113,6 +158,23 @@ variable "db_password_mongodb" {
   default     = ""  # Will be set via environment variable
 }
 
+# Production Optimization Settings
+variable "production_config" {
+  description = "Production optimization settings"
+  type = object({
+    enable_backup           = bool
+    enable_encryption       = bool
+    enable_detailed_logging = bool
+    enable_alerting        = bool
+  })
+  default = {
+    enable_backup           = true
+    enable_encryption       = true
+    enable_detailed_logging = true
+    enable_alerting        = true
+  }
+}
+
 # Common Tags
 variable "common_tags" {
   description = "Common tags for all resources"
@@ -124,5 +186,6 @@ variable "common_tags" {
     CostCenter   = "production"
     Owner        = "team2"
     Account      = "team-production"
+    Purpose      = "production-workloads"
   }
 } 

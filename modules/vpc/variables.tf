@@ -43,11 +43,45 @@ variable "mongodb_private_subnets" {
   type        = list(string)
 }
 
+# Network Configuration
+variable "public_subnet_newbits" {
+  description = "Newbits for public subnet CIDR calculation"
+  type        = number
+  default     = 8
+}
+
+variable "internet_cidr" {
+  description = "CIDR block for internet access"
+  type        = string
+  default     = "0.0.0.0/0"
+}
+
+variable "https_port" {
+  description = "HTTPS port for VPC endpoints"
+  type        = number
+  default     = 443
+}
+
 # SSM Configuration
 variable "enable_ssm_endpoints" {
   description = "Enable SSM VPC endpoints for private subnet access"
   type        = bool
   default     = true
+}
+
+variable "ssm_actions" {
+  description = "List of SSM actions allowed for VPC endpoint policy"
+  type        = list(string)
+  default = [
+    "ssm:StartSession",
+    "ssm:SendCommand",
+    "ssm:GetCommandInvocation",
+    "ssm:DescribeInstanceInformation",
+    "ssm:ListCommandInvocations",
+    "ssm:ListCommands",
+    "ssm:DescribeInstanceAssociationsStatus",
+    "ssm:GetConnectionStatus"
+  ]
 }
 
 # Common Tags
