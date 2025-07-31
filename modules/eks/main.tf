@@ -504,9 +504,9 @@ resource "aws_eks_access_entry" "node_group" {
     aws_iam_openid_connect_provider.eks,  # OIDC Provider 생성 후 AccessEntry 생성
   ]
 
-  # EKS 클러스터가 완전히 준비될 때까지 대기
+  # AccessEntry는 일반적으로 몇 초 내에 생성됨
   timeouts {
-    create = "10m"
+    create = "2m"
   }
 }
 
@@ -534,9 +534,9 @@ resource "aws_eks_access_entry" "cluster_admin" {
     aws_iam_openid_connect_provider.eks,  # OIDC Provider 생성 후 AccessEntry 생성
   ]
 
-  # EKS 클러스터가 완전히 준비될 때까지 대기
+  # AccessEntry는 일반적으로 몇 초 내에 생성됨
   timeouts {
-    create = "10m"
+    create = "2m"
   }
 }
 
