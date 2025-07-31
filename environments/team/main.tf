@@ -1,34 +1,4 @@
 # Team Account - Main Terraform Configuration
-terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-  
-  # Backend configuration for state management
-  # Using local state for development
-  # Uncomment below for S3 remote state:
-  # backend "s3" {
-  #   bucket         = "terraform-state-team-team2"
-  #   key            = "team/terraform.tfstate"
-  #   region         = "ap-northeast-2"
-  #   dynamodb_table = "terraform-lock-team-team2"
-  #   encrypt        = true
-  # }
-}
-
-# Configure AWS Provider for Team Account
-provider "aws" {
-  region  = var.aws_region
-  profile = "default"  # AWS CLI profile for team account
-  
-  default_tags {
-    tags = var.common_tags
-  }
-}
 
 # Data source for availability zones
 data "aws_availability_zones" "available" {

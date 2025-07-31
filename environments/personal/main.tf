@@ -1,34 +1,4 @@
 # Personal Account (Free Tier) - Main Terraform Configuration
-terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-
-  # Backend configuration for state management
-  # Using local state for personal development
-  # Uncomment below for S3 remote state:
-  # backend "s3" {
-  #   bucket         = "terraform-state-personal-team2"
-  #   key            = "personal/terraform.tfstate"
-  #   region         = "ap-northeast-2"
-  #   dynamodb_table = "terraform-lock-personal-team2"
-  #   encrypt        = true
-  # }
-}
-
-# Configure AWS Provider for Personal Account
-provider "aws" {
-  region  = var.aws_region
-  profile = "personal" # AWS CLI profile for personal account
-
-  default_tags {
-    tags = var.common_tags
-  }
-}
 
 # Data source for availability zones
 data "aws_availability_zones" "available" {
