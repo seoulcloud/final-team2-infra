@@ -154,7 +154,11 @@ resource "aws_iam_role" "cluster_admin" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+          AWS = [
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root",
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/*",
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/*"
+          ]
         }
       }
     ]
@@ -551,10 +555,10 @@ resource "aws_eks_access_entry" "node_group" {
 #   depends_on = [aws_eks_access_entry.node_group]
 # }
 
-# EKS Access Entry for Cluster Admin IAM Role (admin access)
+# EKS Access Entry for Cluster Admin (Terraform Cloud 자격증명 사용)
 resource "aws_eks_access_entry" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_iam_role.cluster_admin.arn
+  principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"  # AWS 계정 root 사용자
   type          = "STANDARD"
 
   depends_on = [
@@ -571,7 +575,7 @@ resource "aws_eks_access_entry" "cluster_admin" {
 # EKS Access Policy for Cluster Admin (system:masters group access)
 resource "aws_eks_access_policy_association" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_iam_role.cluster_admin.arn
+  principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"  # AWS 계정 root 사용자
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSSystemAdminPolicy"
 
   access_scope {
