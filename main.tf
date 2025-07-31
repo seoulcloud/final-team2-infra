@@ -59,6 +59,7 @@ module "eks" {
   cluster_endpoint_config = {
     private_access      = true
     public_access       = false
+    public_access_cidrs = ["0.0.0.0/0"] # 안써도 있긴있어야함
   }
 
   # Node Group Configuration (Production Scale)
