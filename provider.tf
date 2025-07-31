@@ -1,11 +1,9 @@
-# Provider Configuration for Team Environment
 terraform {
-  # Terraform Cloud Backend
   cloud {
-    organization = "goteego" # Replace with your Terraform Cloud organization
+    organization = "goteego"
 
     workspaces {
-      name = "goteego"
+      name = "Final-Team2" # goteego는 회사계정 Final-Team2 는 개인계정
     }
   }
 }
