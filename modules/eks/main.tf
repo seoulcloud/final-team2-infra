@@ -143,6 +143,29 @@ resource "aws_iam_policy" "ebs_csi_driver" {
   })
 }
 
+# EKS Cluster Admin IAM Role (사용자 접근용)
+resource "aws_iam_role" "cluster_admin" {
+  name = "${var.project_name}-${var.environment}-eks-cluster-admin-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+      }
+    ]
+  })
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-eks-cluster-admin-role"
+    Type = "EKS-Cluster-Admin-IAM-Role"
+  })
+}
+
 # EBS CSI Driver IAM Role
 resource "aws_iam_role" "ebs_csi_driver" {
   name = "${var.project_name}-${var.environment}-ebs-csi-driver-role"
@@ -352,7 +375,7 @@ resource "aws_eks_node_group" "main" {
     aws_iam_role_policy_attachment.node_group_registry_policy,
     aws_iam_role_policy_attachment.node_group_ssm_policy,
     aws_launch_template.node_group,  # Launch Template 의존성 추가
-    aws_eks_access_policy_association.node_group,  # AccessEntry 생성 후 노드 그룹 생성
+    aws_eks_access_entry.node_group,  # AccessEntry 생성 후 노드 그룹 생성
   ]
 
   tags = merge(var.common_tags, {
@@ -455,7 +478,7 @@ resource "aws_eks_addon" "coredns" {
   
   depends_on = [
     aws_eks_node_group.main,
-    aws_eks_access_policy_association.node_group,  # AccessEntry 생성 후 Add-on 생성
+    aws_eks_access_entry.node_group,  # AccessEntry 생성 후 Add-on 생성
   ]
   
   tags = merge(var.common_tags, {
@@ -489,7 +512,7 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   
   depends_on = [
     aws_eks_node_group.main,
-    aws_eks_access_policy_association.node_group,  # AccessEntry 생성 후 Add-on 생성
+    aws_eks_access_entry.node_group,  # AccessEntry 생성 후 Add-on 생성
   ]
   
   tags = merge(var.common_tags, {
@@ -502,7 +525,7 @@ resource "aws_eks_addon" "ebs_csi_driver" {
 resource "aws_eks_access_entry" "node_group" {
   cluster_name  = aws_eks_cluster.main.name
   principal_arn = aws_iam_role.node_group.arn
-  type          = "STANDARD"
+  type          = "EC2_LINUX"  # EC2 Linux 노드용 타입
 
   depends_on = [
     aws_eks_cluster.main,
@@ -515,23 +538,23 @@ resource "aws_eks_access_entry" "node_group" {
   }
 }
 
-# EKS Access Policy for Node Group (system:nodes group access)
-resource "aws_eks_access_policy_association" "node_group" {
-  cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_iam_role.node_group.arn
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSNodeGroupPolicy"
+# EC2_LINUX 타입은 AccessPolicy가 필요 없음 (자동으로 권한 부여)
+# resource "aws_eks_access_policy_association" "node_group" {
+#   cluster_name  = aws_eks_cluster.main.name
+#   principal_arn = aws_iam_role.node_group.arn
+#   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSNodeGroupPolicy"
+#
+#   access_scope {
+#     type = "cluster"
+#   }
+#
+#   depends_on = [aws_eks_access_entry.node_group]
+# }
 
-  access_scope {
-    type = "cluster"
-  }
-
-  depends_on = [aws_eks_access_entry.node_group]
-}
-
-# EKS Access Entry for Cluster IAM Role (admin access)
+# EKS Access Entry for Cluster Admin IAM Role (admin access)
 resource "aws_eks_access_entry" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_iam_role.cluster.arn
+  principal_arn = aws_iam_role.cluster_admin.arn
   type          = "STANDARD"
 
   depends_on = [
@@ -548,7 +571,7 @@ resource "aws_eks_access_entry" "cluster_admin" {
 # EKS Access Policy for Cluster Admin (system:masters group access)
 resource "aws_eks_access_policy_association" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_iam_role.cluster.arn
+  principal_arn = aws_iam_role.cluster_admin.arn
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSSystemAdminPolicy"
 
   access_scope {
