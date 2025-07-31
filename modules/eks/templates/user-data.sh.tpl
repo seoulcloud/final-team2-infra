@@ -5,50 +5,28 @@ Content-Type: multipart/mixed; boundary="==MYBOUNDARY=="
 Content-Type: text/x-shellscript; charset="us-ascii"
 
 #!/bin/bash
-# EKS Node User Data Script with SSM Support
+# EKS Node User Data Script - Simplified for Managed Node Groups
 set -o xtrace
 
-# Configure EKS bootstrap
-/etc/eks/bootstrap.sh ${cluster_name} \
-    --b64-cluster-ca ${cluster_ca} \
-    --apiserver-endpoint ${cluster_endpoint}
-
 %{ if enable_ssm_access }
-# Configure SSM Agent
-echo "Configuring SSM Agent..."
+# Configure SSM Agent for EKS nodes
+echo "Configuring SSM Agent for EKS nodes..."
 
-# Install SSM Agent if not present (should be pre-installed on Amazon Linux 2)
-if ! systemctl is-active --quiet amazon-ssm-agent; then
-    echo "Starting SSM Agent..."
-    systemctl enable amazon-ssm-agent
-    systemctl start amazon-ssm-agent
-else
-    echo "SSM Agent is already running"
-fi
+# Ensure SSM Agent is enabled and running
+systemctl enable amazon-ssm-agent
+systemctl start amazon-ssm-agent
 
 # Verify SSM Agent status
-systemctl status amazon-ssm-agent
-
-# Configure CloudWatch Agent for monitoring (optional)
-yum install -y amazon-cloudwatch-agent
-
-# Set up logging for EKS nodes
-cat > /etc/rsyslog.d/50-eks.conf << 'EOF'
-# EKS Node Logging
-:programname, isequal, "kubelet" /var/log/eks/kubelet.log
-:programname, isequal, "dockerd" /var/log/eks/docker.log
-& stop
-EOF
-
-systemctl restart rsyslog
-
-echo "SSM configuration completed"
+if systemctl is-active --quiet amazon-ssm-agent; then
+    echo "SSM Agent is running successfully"
+else
+    echo "Warning: SSM Agent failed to start"
+fi
 %{ endif }
 
-# Additional node configuration
-echo "EKS node initialization completed"
+# EKS Managed Node Groups handle bootstrap automatically
+# No manual bootstrap script needed
 
-# Signal completion - EKS managed node groups handle this automatically
-echo "Node setup completed successfully at $(date)"
+echo "EKS node initialization completed at $(date)"
 
 --==MYBOUNDARY==-- 

@@ -346,6 +346,8 @@ resource "aws_eks_node_group" "main" {
     aws_iam_role_policy_attachment.node_group_cni_policy,
     aws_iam_role_policy_attachment.node_group_registry_policy,
     aws_iam_role_policy_attachment.node_group_ssm_policy,
+    aws_launch_template.node_group,  # Launch Template 의존성 추가
+    aws_eks_access_policy_association.node_group,  # AccessEntry 생성 후 노드 그룹 생성
   ]
 
   tags = merge(var.common_tags, {
@@ -446,7 +448,10 @@ resource "aws_eks_addon" "coredns" {
   resolve_conflicts_on_create = var.addon_resolve_conflicts
   resolve_conflicts_on_update = var.addon_resolve_conflicts
   
-  depends_on = [aws_eks_node_group.main]
+  depends_on = [
+    aws_eks_node_group.main,
+    aws_eks_access_policy_association.node_group,  # AccessEntry 생성 후 Add-on 생성
+  ]
   
   tags = merge(var.common_tags, {
     Name = "${var.cluster_name}-coredns"
@@ -471,18 +476,55 @@ resource "aws_eks_addon" "kube_proxy" {
 resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "aws-ebs-csi-driver"
-  addon_version = "v1.25.0-eksbuild.1"
+  
+  service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
   
   resolve_conflicts_on_create = var.addon_resolve_conflicts
   resolve_conflicts_on_update = var.addon_resolve_conflicts
   
   depends_on = [
-    aws_iam_role_policy_attachment.ebs_csi_driver,
-    aws_eks_node_group.main
+    aws_eks_node_group.main,
+    aws_eks_access_policy_association.node_group,  # AccessEntry 생성 후 Add-on 생성
   ]
   
   tags = merge(var.common_tags, {
     Name = "${var.cluster_name}-ebs-csi-driver"
     Type = "EKS-Addon"
   })
+}
+
+# EKS Access Entry for Node Group IAM Role
+resource "aws_eks_access_entry" "node_group" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_iam_role.node_group.arn
+  type          = "STANDARD"
+
+  depends_on = [aws_eks_cluster.main]
+}
+
+# EKS Access Policy for Node Group (system:nodes group access)
+resource "aws_eks_access_policy_association" "node_group" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_iam_role.node_group.arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSNodeGroupPolicy"
+
+  depends_on = [aws_eks_access_entry.node_group]
+}
+
+# EKS Access Entry for Cluster IAM Role (admin access)
+resource "aws_eks_access_entry" "cluster_admin" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_iam_role.cluster.arn
+  type          = "STANDARD"
+
+  depends_on = [aws_eks_cluster.main]
+}
+
+# EKS Access Policy for Cluster Admin (system:masters group access)
+resource "aws_eks_access_policy_association" "cluster_admin" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_iam_role.cluster.arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSSystemAdminPolicy"
+
+  depends_on = [aws_eks_access_entry.cluster_admin]
 } 

@@ -36,7 +36,7 @@ variable "eks_private_subnets" {
 variable "cluster_version" {
   description = "Kubernetes version to use for the EKS cluster"
   type        = string
-  default     = "1.28"
+  default     = "1.30"
 }
 
 # Network Configuration
