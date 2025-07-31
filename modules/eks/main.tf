@@ -280,6 +280,11 @@ resource "aws_eks_cluster" "main" {
   # Enable EKS cluster logging
   enabled_cluster_log_types = var.cluster_log_types
 
+  # Enable AccessEntry authentication mode
+  authentication {
+    mode = "API_AND_CONFIG_MAP"
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.cluster_policy,
   ]
@@ -499,7 +504,15 @@ resource "aws_eks_access_entry" "node_group" {
   principal_arn = aws_iam_role.node_group.arn
   type          = "STANDARD"
 
-  depends_on = [aws_eks_cluster.main]
+  depends_on = [
+    aws_eks_cluster.main,
+    aws_iam_openid_connect_provider.eks,  # OIDC Provider 생성 후 AccessEntry 생성
+  ]
+
+  # EKS 클러스터가 완전히 준비될 때까지 대기
+  timeouts {
+    create = "10m"
+  }
 }
 
 # EKS Access Policy for Node Group (system:nodes group access)
@@ -521,7 +534,15 @@ resource "aws_eks_access_entry" "cluster_admin" {
   principal_arn = aws_iam_role.cluster.arn
   type          = "STANDARD"
 
-  depends_on = [aws_eks_cluster.main]
+  depends_on = [
+    aws_eks_cluster.main,
+    aws_iam_openid_connect_provider.eks,  # OIDC Provider 생성 후 AccessEntry 생성
+  ]
+
+  # EKS 클러스터가 완전히 준비될 때까지 대기
+  timeouts {
+    create = "10m"
+  }
 }
 
 # EKS Access Policy for Cluster Admin (system:masters group access)
