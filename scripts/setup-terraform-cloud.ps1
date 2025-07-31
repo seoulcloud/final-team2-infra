@@ -1,14 +1,12 @@
 # PowerShell Script for Setting up Terraform Cloud
-# Usage: .\scripts\setup-terraform-cloud.ps1 -Environment personal
-# Usage: .\scripts\setup-terraform-cloud.ps1 -Environment team
+# Usage: .\scripts\setup-terraform-cloud.ps1
 
 param(
-    [Parameter(Mandatory=$true)]
-    [ValidateSet("personal", "team")]
-    [string]$Environment,
-    
     [Parameter(Mandatory=$false)]
-    [string]$Organization = "team2-infra",
+    [string]$Organization = "goteego",
+
+    [Parameter(Mandatory=$false)]
+    [string]$WorkspaceName = "goteego",
     
     [Parameter(Mandatory=$false)]
     [string]$TerraformCloudToken = ""
@@ -16,28 +14,16 @@ param(
 
 # Configuration Variables
 $Config = @{
-    personal = @{
-        WorkspaceName = "team2-infra-personal"
-        Description = "Team2 Infrastructure - Personal Development Environment"
-        AwsProfile = "personal"
-    }
-    team = @{
-        WorkspaceName = "team2-infra-team"
-        Description = "Team2 Infrastructure - Team Production Environment"
-        AwsProfile = "default"
-    }
+    AwsProfile = "default"
 }
 
-$envConfig = $Config[$Environment]
-$workspaceName = $envConfig.WorkspaceName
-$description = $envConfig.Description
-$awsProfile = $envConfig.AwsProfile
+$awsProfile = $Config.AwsProfile
 
-Write-Host "Setting up Terraform Cloud for $Environment environment" -ForegroundColor Green
+Write-Host "Setting up Terraform Cloud" -ForegroundColor Green
 Write-Host "=" * 60 -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Organization: $Organization" -ForegroundColor Cyan
-Write-Host "Workspace: $workspaceName" -ForegroundColor Cyan
+Write-Host "Workspace: $WorkspaceName" -ForegroundColor Cyan
 Write-Host ""
 
 # Check if Terraform CLI is installed
@@ -106,13 +92,13 @@ Write-Host ""
 Write-Host "STEP 2: Workspace Configuration" -ForegroundColor Yellow
 
 # Navigate to environment directory
-$envDir = "environments\$Environment"
-if (-not (Test-Path $envDir)) {
-    Write-Host "ERROR: Environment directory not found: $envDir" -ForegroundColor Red
+$terraformDir = "final-team2-infra"
+if (-not (Test-Path $terraformDir)) {
+    Write-Host "ERROR: Terraform directory not found: $terraformDir" -ForegroundColor Red
     exit 1
 }
 
-Push-Location $envDir
+Push-Location $terraformDir
 
 try {
     Write-Host "Initializing Terraform with Cloud backend..." -ForegroundColor Yellow
@@ -142,7 +128,7 @@ try {
     Write-Host ""
     
     Write-Host "To set these variables:" -ForegroundColor Yellow
-    Write-Host "1. Go to: https://app.terraform.io/app/$Organization/workspaces/$workspaceName/variables" -ForegroundColor Gray
+    Write-Host "1. Go to: https://app.terraform.io/app/$Organization/workspaces/$WorkspaceName/variables" -ForegroundColor Gray
     Write-Host "2. Add the environment variables listed above" -ForegroundColor Gray
     Write-Host "3. Mark sensitive variables as 'Sensitive'" -ForegroundColor Gray
     Write-Host ""
@@ -168,9 +154,9 @@ Write-Host "SUCCESS: Terraform Cloud setup completed!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next Steps:" -ForegroundColor Yellow
 Write-Host "1. Set up variables in Terraform Cloud workspace" -ForegroundColor White
-Write-Host "2. Run: .\scripts\deploy.ps1 -Environment $Environment -Action plan" -ForegroundColor White
+Write-Host "2. Run: .\scripts\deploy.ps1 -Action plan" -ForegroundColor White
 Write-Host "3. Review the plan in Terraform Cloud UI" -ForegroundColor White
 Write-Host "4. Apply via Terraform Cloud UI or CLI" -ForegroundColor White
 Write-Host ""
 Write-Host "Terraform Cloud Workspace URL:" -ForegroundColor Cyan
-Write-Host "https://app.terraform.io/app/$Organization/workspaces/$workspaceName" -ForegroundColor Gray 
+Write-Host "https://app.terraform.io/app/$Organization/workspaces/$WorkspaceName" -ForegroundColor Gray 

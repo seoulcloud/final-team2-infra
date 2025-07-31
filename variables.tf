@@ -79,7 +79,7 @@ variable "eks_cluster_version" {
 }
 
 variable "eks_node_groups" {
-  description = "EKS node groups configuration (Production scale)"
+  description = "EKS node groups configuration"
   type = map(object({
     instance_types = list(string)
     min_size       = number
@@ -90,23 +90,23 @@ variable "eks_node_groups" {
     capacity_type  = string
   }))
   default = {
-    general = {
-      instance_types = ["t3.medium", "t3.large"] # Production scale instances
-      min_size       = 2
-      max_size       = 10 # Higher max for production
-      desired_size   = 3  # Higher desired for production
-      disk_size      = 50 # Larger disk for production
-      ami_type       = "AL2_x86_64"
-      capacity_type  = "ON_DEMAND" # On-demand for production stability
-    }
-    compute = {
-      instance_types = ["c5.large", "c5.xlarge"] # Compute optimized nodes
+    "general" = {
+      instance_types = ["t3.small"]
       min_size       = 1
-      max_size       = 5
-      desired_size   = 2
-      disk_size      = 50
+      max_size       = 2
+      desired_size   = 1
+      disk_size      = 20
       ami_type       = "AL2_x86_64"
-      capacity_type  = "SPOT" # Mix of spot for cost optimization
+      capacity_type  = "SPOT"
+    },
+    "compute" = {
+      instance_types = ["t3.small"]
+      min_size       = 1
+      max_size       = 2
+      desired_size   = 1
+      disk_size      = 20
+      ami_type       = "AL2_x86_64"
+      capacity_type  = "SPOT"
     }
   }
 }

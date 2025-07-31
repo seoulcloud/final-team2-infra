@@ -1,5 +1,6 @@
-# Personal Account (Free Tier) - Main Terraform Configuration
+# Team Account - Main Terraform Configuration
 
+##test
 # Data source for availability zones
 data "aws_availability_zones" "available" {
   state = "available"
@@ -7,7 +8,7 @@ data "aws_availability_zones" "available" {
 
 # VPC Module
 module "vpc" {
-  source = "../../modules/vpc"
+  source = "./modules/vpc"
 
   # Basic Configuration
   environment        = var.environment
@@ -15,7 +16,7 @@ module "vpc" {
   aws_region         = var.aws_region
   availability_zones = data.aws_availability_zones.available.names
 
-  # VPC Configuration (Free Tier Optimized)
+  # VPC Configuration (Production Scale)
   vpc_cidr = var.vpc_cidr
 
   # Network Configuration
@@ -35,7 +36,7 @@ module "vpc" {
 
 # EKS Module
 module "eks" {
-  source = "../../modules/eks"
+  source = "./modules/eks"
 
   # Dependencies
   vpc_id              = module.vpc.vpc_id
@@ -47,7 +48,7 @@ module "eks" {
   project_name = var.project_name
   cluster_name = "${var.project_name}-${var.environment}-cluster"
 
-  # EKS Configuration (Free Tier Optimized)
+  # EKS Configuration (Production Scale)
   cluster_version = var.eks_cluster_version
 
   # Network Configuration
@@ -60,11 +61,11 @@ module "eks" {
     public_access_cidrs = var.cluster_endpoint_public_access_cidrs
   }
 
-  # Node Group Configuration (Free Tier)
+  # Node Group Configuration (Production Scale)
   node_groups                = var.eks_node_groups
   max_unavailable_percentage = var.max_unavailable_percentage
 
-  # Monitoring Configuration (Cost Optimized)
+  # Monitoring Configuration (Production)
   monitoring_enabled = var.enable_detailed_monitoring
 
   # SSM Access
@@ -92,5 +93,5 @@ output "eks_cluster_name" {
 
 output "ssm_session_manager_url" {
   description = "SSM Session Manager Connection Guide"
-  value       = "Use 'aws ssm start-session --target <instance-id> --profile personal' to connect"
+  value       = "Use 'aws ssm start-session --target <instance-id> --profile default' to connect"
 } 

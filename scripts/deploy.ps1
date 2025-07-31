@@ -2,228 +2,119 @@
 # Usage: .\scripts\deploy.ps1 -Environment personal -Action plan
 # Usage: .\scripts\deploy.ps1 -Environment team -Action apply
 
+<#
+.SYNOPSIS
+    Deploys or destroys infrastructure using Terraform.
+.DESCRIPTION
+    A wrapper script for Terraform commands (init, plan, apply, destroy).
+    It ensures prerequisites are met and provides user confirmation for critical actions.
+.PARAMETER Action
+    The Terraform action to perform (init, plan, apply, destroy, validate, fmt).
+#>
 param(
-    [Parameter(Mandatory=$true)]
-    [ValidateSet("personal", "team")]
-    [string]$Environment,
-    
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [ValidateSet("init", "plan", "apply", "destroy", "validate", "fmt")]
-    [string]$Action,
-    
-    [switch]$AutoApprove,
-    [switch]$SkipValidation
+    [string]$Action
 )
 
-# Configuration Variables (Centralized)
+# Configuration
 $Config = @{
     ProjectName = "team2-infra"
     Region      = "ap-northeast-2"
-    Profiles    = @{
-        personal = "personal"
-        team     = "default"
-    }
+    AwsProfile  = "default" # Using single profile now
 }
 
-# Colors for output
-$Green = "Green"
-$Red = "Red"
-$Yellow = "Yellow"
-$Cyan = "Cyan"
-$White = "White"
-$Gray = "Gray"
+$ProjectName = $Config.ProjectName
+$Region = $Config.Region
+$AwsProfile = $Config.AwsProfile
 
-# Function to display banner
-function Show-Banner {
-    param([string]$Text, [string]$Color = "Cyan")
-    
-    Write-Host ""
-    Write-Host "=" * 60 -ForegroundColor $Color
-    Write-Host "  $Text" -ForegroundColor $Color
-    Write-Host "=" * 60 -ForegroundColor $Color
-    Write-Host ""
+# Function to check for required commands
+function Test-Command {
+    param([string]$command)
+    return (Get-Command $command -ErrorAction SilentlyContinue) -ne $null
 }
 
-# Function to check prerequisites
-function Test-Prerequisites {
-    Write-Host "Checking prerequisites..." -ForegroundColor $Yellow
-    
-    # Check if Terraform is installed
-    try {
-        $tfVersion = terraform version
-        Write-Host "SUCCESS: Terraform found: $($tfVersion[0])" -ForegroundColor $Green
-    } catch {
-        Write-Host "ERROR: Terraform not found. Please install Terraform first." -ForegroundColor $Red
-        exit 1
-    }
-    
-    # Check if AWS CLI is configured
-    try {
-        $awsProfile = $Config.Profiles[$Environment]
-        aws sts get-caller-identity --profile $awsProfile | Out-Null
-        Write-Host "SUCCESS: AWS CLI configured for profile: $awsProfile" -ForegroundColor $Green
-    } catch {
-        Write-Host "ERROR: AWS CLI not configured for profile: $awsProfile" -ForegroundColor $Red
-        Write-Host "Please run: aws configure --profile $awsProfile" -ForegroundColor $Yellow
-        exit 1
-    }
-    
-    # Check if environment variables are set (for apply/plan)
-    if ($Action -in @("plan", "apply")) {
-        if (-not $env:TF_VAR_db_password_postgresql -or -not $env:TF_VAR_db_password_mongodb) {
-            Write-Host "WARNING: Database passwords not set. Run set-env-vars.ps1 first:" -ForegroundColor $Yellow
-            Write-Host ".\scripts\set-env-vars.ps1 -Environment $Environment" -ForegroundColor $Gray
-            if (-not $SkipValidation) {
-                exit 1
-            }
-        } else {
-            Write-Host "SUCCESS: Database environment variables are set" -ForegroundColor $Green
-        }
-    }
-    
-    Write-Host ""
+# --- PREREQUISITE CHECKS ---
+Write-Host "--- Checking Prerequisites ---" -ForegroundColor Cyan
+
+# Check for AWS CLI
+if (-not (Test-Command "aws")) {
+    Write-Host "ERROR: AWS CLI is not installed. Please install it and configure your profile." -ForegroundColor Red
+    exit 1
 }
+Write-Host "SUCCESS: AWS CLI found."
 
-# Function to run terraform command with error handling
-function Invoke-TerraformCommand {
-    param(
-        [string]$Command,
-        [string]$WorkingDirectory
-    )
-    
-    Push-Location $WorkingDirectory
-    try {
-        Write-Host "Executing: $Command" -ForegroundColor $Cyan
-        Write-Host ""
-        
-        # Execute the command
-        Invoke-Expression $Command
-        
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host ""
-            Write-Host "ERROR: Command failed with exit code: $LASTEXITCODE" -ForegroundColor $Red
-            exit $LASTEXITCODE
-        } else {
-            Write-Host ""
-            Write-Host "SUCCESS: Command completed successfully!" -ForegroundColor $Green
-        }
-    } finally {
-        Pop-Location
-    }
+# Check for Terraform
+if (-not (Test-Command "terraform")) {
+    Write-Host "ERROR: Terraform is not installed. Please install it." -ForegroundColor Red
+    exit 1
 }
+Write-Host "SUCCESS: Terraform found."
 
-# Main script execution
-Show-Banner "Terraform Deployment Script - $Environment Environment"
-
-# Set working directory
-$workingDir = "environments\$Environment"
-if (-not (Test-Path $workingDir)) {
-    Write-Host "ERROR: Environment directory not found: $workingDir" -ForegroundColor $Red
+# Check AWS Profile
+try {
+    $identity = aws sts get-caller-identity --profile $AwsProfile --output json | ConvertFrom-Json
+    Write-Host "SUCCESS: AWS Profile '$AwsProfile' is configured. User: $($identity.Arn)" -ForegroundColor Green
+}
+catch {
+    Write-Host "ERROR: AWS Profile '$AwsProfile' not found or configured correctly." -ForegroundColor Red
+    Write-Host "Please run 'aws configure --profile $AwsProfile' to set it up."
     exit 1
 }
 
-Write-Host "Working directory: $workingDir" -ForegroundColor $Cyan
-Write-Host "Action: $Action" -ForegroundColor $Cyan
+Write-Host "----------------------------"
+Write-Host ""
 
-# Check prerequisites
-Test-Prerequisites
-
-# Confirmation for destructive actions
-if ($Action -in @("apply", "destroy") -and -not $AutoApprove) {
-    Show-Banner "CONFIRMATION REQUIRED" "Yellow"
-    Write-Host "You are about to run 'terraform $Action' on the $Environment environment." -ForegroundColor $Yellow
-    Write-Host ""
-    
-    if ($Action -eq "destroy") {
-        Write-Host "WARNING: This will DESTROY all resources in this environment!" -ForegroundColor $Red
-        Write-Host ""
-    }
-    
-    $confirmation = Read-Host "Do you want to proceed? (y/n)"
-    if ($confirmation -ne 'y' -and $confirmation -ne 'Y') {
-        Write-Host "ERROR: Operation cancelled by user." -ForegroundColor $Red
-        exit 0
-    }
+# --- MAIN LOGIC ---
+$terraformDir = "final-team2-infra"
+if (-not (Test-Path $terraformDir)) {
+    Write-Host "ERROR: Terraform directory '$terraformDir' not found." -ForegroundColor Red
+    exit 1
 }
+Push-Location $terraformDir
 
-# Execute terraform commands based on action
-switch ($Action) {
-    "init" {
-        Show-Banner "Initializing Terraform"
-        Invoke-TerraformCommand "terraform init" $workingDir
-    }
-    
-    "validate" {
-        Show-Banner "Validating Terraform Configuration"
-        Invoke-TerraformCommand "terraform validate" $workingDir
-    }
-    
-    "fmt" {
-        Show-Banner "Formatting Terraform Files"
-        Invoke-TerraformCommand "terraform fmt -recursive" $workingDir
-    }
-    
-    "plan" {
-        Show-Banner "Planning Terraform Deployment"
-        
-        # Run additional checks before planning
-        Write-Host "Running pre-plan checks..." -ForegroundColor $Yellow
-        Invoke-TerraformCommand "terraform fmt -check" $workingDir
-        Invoke-TerraformCommand "terraform validate" $workingDir
-        
-        # Generate plan
-        $planFile = "terraform-$(Get-Date -Format 'yyyyMMdd-HHmmss').tfplan"
-        Invoke-TerraformCommand "terraform plan -out=$planFile" $workingDir
-        
-        Write-Host ""
-        Write-Host "Plan saved to: $planFile" -ForegroundColor $Green
-        Write-Host "To apply this plan, run:" -ForegroundColor $Yellow
-        Write-Host "terraform apply $planFile" -ForegroundColor $Gray
-    }
-    
-    "apply" {
-        Show-Banner "Applying Terraform Configuration"
-        
-        # Run pre-apply checks
-        Write-Host "Running pre-apply checks..." -ForegroundColor $Yellow
-        Invoke-TerraformCommand "terraform fmt -check" $workingDir
-        Invoke-TerraformCommand "terraform validate" $workingDir
-        
-        # Apply configuration
-        if ($AutoApprove) {
-            Invoke-TerraformCommand "terraform apply -auto-approve" $workingDir
-        } else {
-            Invoke-TerraformCommand "terraform apply" $workingDir
+try {
+    switch ($Action) {
+        "init" {
+            Write-Host "--- Initializing Terraform ---" -ForegroundColor Cyan
+            terraform init
         }
-        
-        # Show outputs
-        Write-Host ""
-        Show-Banner "Deployment Outputs"
-        Invoke-TerraformCommand "terraform output" $workingDir
-    }
-    
-    "destroy" {
-        Show-Banner "Destroying Terraform Resources" "Red"
-        
-        if ($AutoApprove) {
-            Invoke-TerraformCommand "terraform destroy -auto-approve" $workingDir
-        } else {
-            Invoke-TerraformCommand "terraform destroy" $workingDir
+        "plan" {
+            Write-Host "--- Planning Infrastructure ---" -ForegroundColor Cyan
+            terraform plan
+        }
+        "apply" {
+            Write-Host "--- Applying Infrastructure ---" -ForegroundColor Cyan
+            $confirmation = Read-Host "Are you sure you want to apply the changes? (y/n)"
+            if ($confirmation -eq 'y') {
+                terraform apply -auto-approve
+            }
+            else {
+                Write-Host "Apply cancelled."
+            }
+        }
+        "destroy" {
+            Write-Host "--- Destroying Infrastructure ---" -ForegroundColor Red
+            $confirmation = Read-Host "ARE YOU SURE you want to destroy all resources? This is irreversible. (y/n)"
+            if ($confirmation -eq 'y') {
+                terraform destroy -auto-approve
+            }
+            else {
+                Write-Host "Destroy cancelled."
+            }
+        }
+        "validate" {
+            Write-Host "--- Validating Terraform Configuration ---" -ForegroundColor Cyan
+            terraform validate
+        }
+        "fmt" {
+            Write-Host "--- Formatting Terraform Files ---" -ForegroundColor Cyan
+            terraform fmt -recursive
         }
     }
 }
+finally {
+    Pop-Location
+}
 
-# Final message
-Show-Banner "Operation Completed Successfully!" "Green"
-
-if ($Action -eq "apply") {
-    $profile = $Config.Profiles[$Environment]
-    $clusterName = "$($Config.ProjectName)-$Environment-cluster"
-    
-    Write-Host "Next Steps:" -ForegroundColor $Yellow
-    Write-Host "1. Verify resources in AWS Console" -ForegroundColor $White
-    Write-Host "2. Test SSM connectivity:" -ForegroundColor $White
-    Write-Host "   aws ec2 describe-instances --filters 'Name=tag:kubernetes.io/cluster/$clusterName,Values=owned' --query 'Reservations[].Instances[].InstanceId' --output table --profile $profile" -ForegroundColor $Gray
-    Write-Host "3. Configure kubectl:" -ForegroundColor $White
-    Write-Host "   aws eks update-kubeconfig --region $($Config.Region) --name $clusterName --profile $profile" -ForegroundColor $Gray
-} 
+Write-Host "`nSUCCESS: Action '$Action' completed." -ForegroundColor Green 
