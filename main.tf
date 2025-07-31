@@ -22,10 +22,11 @@ module "vpc" {
   # Network Configuration
   internet_cidr = var.internet_cidr
 
-  # Subnet Configuration - 6 Private Subnets
+  # Subnet Configuration - 8 Private Subnets
   eks_private_subnets        = var.eks_private_subnets
   postgresql_private_subnets = var.postgresql_private_subnets
   mongodb_private_subnets    = var.mongodb_private_subnets
+  elasticache_private_subnets = var.elasticache_private_subnets
 
   # SSM Configuration
   enable_ssm_endpoints = var.enable_ssm_endpoints
@@ -58,7 +59,6 @@ module "eks" {
   cluster_endpoint_config = {
     private_access      = true
     public_access       = false
-    public_access_cidrs = var.cluster_endpoint_public_access_cidrs
   }
 
   # Node Group Configuration (Production Scale)
