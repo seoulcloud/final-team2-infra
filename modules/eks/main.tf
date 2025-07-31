@@ -280,6 +280,11 @@ resource "aws_eks_cluster" "main" {
   # Enable EKS cluster logging
   enabled_cluster_log_types = var.cluster_log_types
 
+  # Authentication mode: API only (AccessEntry만 사용, aws-auth ConfigMap 사용 안함)
+  access_config {
+    authentication_mode = "API"
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.cluster_policy,
   ]
