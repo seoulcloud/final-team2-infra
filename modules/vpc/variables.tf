@@ -43,6 +43,11 @@ variable "mongodb_private_subnets" {
   type        = list(string)
 }
 
+variable "elasticache_private_subnets" {
+  description = "Elasticache용 프라이빗 서브넷 목록"
+  type        = list(string)
+}
+
 # Network Configuration
 variable "public_subnet_newbits" {
   description = "Newbits for public subnet CIDR calculation"
