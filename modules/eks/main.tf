@@ -564,6 +564,7 @@ resource "aws_eks_access_entry" "cluster_admin" {
   depends_on = [
     aws_eks_cluster.main,
     aws_iam_openid_connect_provider.eks,  # OIDC Provider 생성 후 AccessEntry 생성
+    aws_iam_role.cluster_admin,  # IAM Role 먼저 생성
   ]
 
   # EKS 클러스터가 완전히 준비될 때까지 대기 (클러스터 생성 9분 소요)
@@ -582,5 +583,8 @@ resource "aws_eks_access_policy_association" "cluster_admin" {
     type = "cluster"
   }
 
-  depends_on = [aws_eks_access_entry.cluster_admin]
+  depends_on = [
+    aws_eks_access_entry.cluster_admin,
+    aws_iam_role.cluster_admin,  # IAM Role 먼저 생성
+  ]
 } 
