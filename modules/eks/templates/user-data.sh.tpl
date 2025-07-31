@@ -1,5 +1,10 @@
-#!/bin/bash
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="==MYBOUNDARY=="
 
+--==MYBOUNDARY==
+Content-Type: text/x-shellscript; charset="us-ascii"
+
+#!/bin/bash
 # EKS Node User Data Script with SSM Support
 set -o xtrace
 
@@ -45,3 +50,5 @@ echo "EKS node initialization completed"
 
 # Signal completion
 /opt/aws/bin/cfn-signal -e $? --stack $${AWS_DEFAULT_REGION} --resource NodeGroup --region $${AWS_DEFAULT_REGION} 
+
+--==MYBOUNDARY==-- 
