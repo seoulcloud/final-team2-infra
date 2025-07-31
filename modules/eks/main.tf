@@ -108,22 +108,6 @@ resource "aws_iam_role_policy" "node_group_ssm_custom" {
   })
 }
 
-resource "aws_iam_role_policy" "node_group_cfn_signal" {
-  name = "${var.project_name}-${var.environment}-eks-node-cfn-signal"
-  role = aws_iam_role.node_group.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow",
-        Action   = "cloudformation:SignalResource",
-        Resource = "*"
-      }
-    ]
-  })
-}
-
 # EBS CSI Driver IAM Policy
 resource "aws_iam_policy" "ebs_csi_driver" {
   name        = "${var.project_name}-${var.environment}-ebs-csi-driver-policy"

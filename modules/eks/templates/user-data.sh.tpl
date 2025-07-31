@@ -48,7 +48,7 @@ echo "SSM configuration completed"
 # Additional node configuration
 echo "EKS node initialization completed"
 
-# Signal completion
-/opt/aws/bin/cfn-signal -e $? --stack $${AWS_DEFAULT_REGION} --resource NodeGroup --region $${AWS_DEFAULT_REGION} 
+# Signal completion - EKS managed node groups handle this automatically
+echo "Node setup completed successfully at $(date)"
 
 --==MYBOUNDARY==-- 

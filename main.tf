@@ -57,7 +57,7 @@ module "eks" {
   # Cluster Endpoint Configuration
   cluster_endpoint_config = {
     private_access      = true
-    public_access       = true
+    public_access       = false
     public_access_cidrs = var.cluster_endpoint_public_access_cidrs
   }
 

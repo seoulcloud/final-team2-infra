@@ -1,4 +1,6 @@
 # Team Environment Variables
+# 전체 인프라를 배포할 때 외부에서 입력받을 변수 (!! 모듈 variable은 모듈 블럭에서만 !!)
+# CIDR , NodeGroup , 환경명 , 공통태그
 
 # Basic Configuration
 variable "aws_region" {
@@ -16,7 +18,7 @@ variable "environment" {
 variable "project_name" {
   description = "Project name"
   type        = string
-  default     = "team2-infra"
+  default     = "goteego"
 }
 
 # VPC Configuration
@@ -45,17 +47,17 @@ variable "mongodb_private_subnets" {
   default     = ["10.0.30.0/24", "10.0.31.0/24"] # MongoDB subnets
 }
 
+variable "elasticache_private_subnets" {
+  description = "Private subnets for elasticache (2 AZs)"
+  type        = list(string)
+  default     = ["10.0.40.0/24", "10.0.41.0/24"] # elasticache subnets
+}
+
 # Network Security Configuration (Team - Production Ready)
 variable "internet_cidr" {
   description = "CIDR block for internet access"
   type        = string
   default     = "0.0.0.0/0"
-}
-
-variable "cluster_endpoint_public_access_cidrs" {
-  description = "CIDR blocks allowed to access EKS cluster endpoint"
-  type        = list(string)
-  default     = ["0.0.0.0/0"] # TODO: Restrict to office/VPN IPs in production
 }
 
 # SSM Configuration
@@ -75,7 +77,7 @@ variable "enable_ssm_access" {
 variable "eks_cluster_version" {
   description = "EKS cluster version"
   type        = string
-  default     = "1.28" # Latest stable version
+  default     = "1.30" # stable version
 }
 
 variable "eks_node_groups" {
@@ -121,7 +123,7 @@ variable "max_unavailable_percentage" {
 variable "cluster_log_retention_days" {
   description = "Number of days to retain cluster logs"
   type        = number
-  default     = 30 # Longer retention for production
+  default     = 7 # Longer retention for production
 }
 
 variable "enable_detailed_monitoring" {
@@ -158,6 +160,13 @@ variable "db_password_mongodb" {
   default     = "" # Will be set via environment variable
 }
 
+variable "db_password_elasticache" {
+  description = "elasticache database password"
+  type        = string
+  sensitive   = true
+  default     = "" # Will be set via environment variable
+}
+
 # Production Optimization Settings
 variable "production_config" {
   description = "Production optimization settings"
@@ -181,11 +190,11 @@ variable "common_tags" {
   type        = map(string)
   default = {
     Environment = "team"
-    Project     = "team2-infra"
+    Project     = "goteego"
     ManagedBy   = "terraform"
     CostCenter  = "production"
-    Owner       = "team2"
-    Account     = "team-production"
-    Purpose     = "production-workloads"
+    Owner       = "teamf2"
+    Account     = "teamf2"
+    Purpose     = "production"
   }
 } 
