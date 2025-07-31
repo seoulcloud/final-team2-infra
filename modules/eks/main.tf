@@ -280,11 +280,6 @@ resource "aws_eks_cluster" "main" {
   # Enable EKS cluster logging
   enabled_cluster_log_types = var.cluster_log_types
 
-  # Enable AccessEntry authentication mode
-  authentication {
-    mode = "API_AND_CONFIG_MAP"
-  }
-
   depends_on = [
     aws_iam_role_policy_attachment.cluster_policy,
   ]
