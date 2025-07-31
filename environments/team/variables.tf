@@ -30,19 +30,19 @@ variable "vpc_cidr" {
 variable "eks_private_subnets" {
   description = "Private subnets for EKS (2 AZs)"
   type        = list(string)
-  default     = ["10.0.10.0/24", "10.0.11.0/24"]  # EKS subnets
+  default     = ["10.0.10.0/24", "10.0.11.0/24"] # EKS subnets
 }
 
 variable "postgresql_private_subnets" {
   description = "Private subnets for PostgreSQL (2 AZs)"
   type        = list(string)
-  default     = ["10.0.20.0/24", "10.0.21.0/24"]  # PostgreSQL subnets
+  default     = ["10.0.20.0/24", "10.0.21.0/24"] # PostgreSQL subnets
 }
 
 variable "mongodb_private_subnets" {
   description = "Private subnets for MongoDB (2 AZs)"
   type        = list(string)
-  default     = ["10.0.30.0/24", "10.0.31.0/24"]  # MongoDB subnets
+  default     = ["10.0.30.0/24", "10.0.31.0/24"] # MongoDB subnets
 }
 
 # Network Security Configuration (Team - Production Ready)
@@ -55,7 +55,7 @@ variable "internet_cidr" {
 variable "cluster_endpoint_public_access_cidrs" {
   description = "CIDR blocks allowed to access EKS cluster endpoint"
   type        = list(string)
-  default     = ["0.0.0.0/0"]  # TODO: Restrict to office/VPN IPs in production
+  default     = ["0.0.0.0/0"] # TODO: Restrict to office/VPN IPs in production
 }
 
 # SSM Configuration
@@ -75,38 +75,38 @@ variable "enable_ssm_access" {
 variable "eks_cluster_version" {
   description = "EKS cluster version"
   type        = string
-  default     = "1.28"  # Latest stable version
+  default     = "1.28" # Latest stable version
 }
 
 variable "eks_node_groups" {
   description = "EKS node groups configuration (Production scale)"
   type = map(object({
     instance_types = list(string)
-    min_size      = number
-    max_size      = number
-    desired_size  = number
-    disk_size     = number
-    ami_type      = string
-    capacity_type = string
+    min_size       = number
+    max_size       = number
+    desired_size   = number
+    disk_size      = number
+    ami_type       = string
+    capacity_type  = string
   }))
   default = {
     general = {
       instance_types = ["t3.medium", "t3.large"] # Production scale instances
-      min_size      = 2
-      max_size      = 10                          # Higher max for production
-      desired_size  = 3                           # Higher desired for production
-      disk_size     = 50                          # Larger disk for production
-      ami_type      = "AL2_x86_64"
-      capacity_type = "ON_DEMAND"                 # On-demand for production stability
+      min_size       = 2
+      max_size       = 10 # Higher max for production
+      desired_size   = 3  # Higher desired for production
+      disk_size      = 50 # Larger disk for production
+      ami_type       = "AL2_x86_64"
+      capacity_type  = "ON_DEMAND" # On-demand for production stability
     }
     compute = {
       instance_types = ["c5.large", "c5.xlarge"] # Compute optimized nodes
-      min_size      = 1
-      max_size      = 5
-      desired_size  = 2
-      disk_size     = 50
-      ami_type      = "AL2_x86_64"
-      capacity_type = "SPOT"                      # Mix of spot for cost optimization
+      min_size       = 1
+      max_size       = 5
+      desired_size   = 2
+      disk_size      = 50
+      ami_type       = "AL2_x86_64"
+      capacity_type  = "SPOT" # Mix of spot for cost optimization
     }
   }
 }
@@ -115,19 +115,19 @@ variable "eks_node_groups" {
 variable "max_unavailable_percentage" {
   description = "Maximum percentage of nodes unavailable during update"
   type        = number
-  default     = 25  # Conservative for production stability
+  default     = 25 # Conservative for production stability
 }
 
 variable "cluster_log_retention_days" {
   description = "Number of days to retain cluster logs"
   type        = number
-  default     = 30  # Longer retention for production
+  default     = 30 # Longer retention for production
 }
 
 variable "enable_detailed_monitoring" {
   description = "Enable detailed monitoring for production visibility"
   type        = bool
-  default     = true  # Enable for production monitoring
+  default     = true # Enable for production monitoring
 }
 
 # High Availability Configuration
@@ -148,14 +148,14 @@ variable "db_password_postgresql" {
   description = "PostgreSQL database password"
   type        = string
   sensitive   = true
-  default     = ""  # Will be set via environment variable
+  default     = "" # Will be set via environment variable
 }
 
 variable "db_password_mongodb" {
   description = "MongoDB database password"
   type        = string
   sensitive   = true
-  default     = ""  # Will be set via environment variable
+  default     = "" # Will be set via environment variable
 }
 
 # Production Optimization Settings
@@ -165,13 +165,13 @@ variable "production_config" {
     enable_backup           = bool
     enable_encryption       = bool
     enable_detailed_logging = bool
-    enable_alerting        = bool
+    enable_alerting         = bool
   })
   default = {
     enable_backup           = true
     enable_encryption       = true
     enable_detailed_logging = true
-    enable_alerting        = true
+    enable_alerting         = true
   }
 }
 
@@ -180,12 +180,12 @@ variable "common_tags" {
   description = "Common tags for all resources"
   type        = map(string)
   default = {
-    Environment   = "team"
-    Project       = "team2-infra"
-    ManagedBy    = "terraform"
-    CostCenter   = "production"
-    Owner        = "team2"
-    Account      = "team-production"
-    Purpose      = "production-workloads"
+    Environment = "team"
+    Project     = "team2-infra"
+    ManagedBy   = "terraform"
+    CostCenter  = "production"
+    Owner       = "team2"
+    Account     = "team-production"
+    Purpose     = "production-workloads"
   }
 } 
