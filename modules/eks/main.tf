@@ -233,31 +233,13 @@ resource "aws_security_group" "node_group" {
     description = "All outbound traffic"
   }
 
-  # HTTPS for SSM communication
+  # HTTPS for SSM communication (Session Manager, Messages, etc.)
   ingress {
     from_port   = var.https_port
     to_port     = var.https_port
     protocol    = "tcp"
     cidr_blocks = [var.vpc_cidr]
-    description = "HTTPS for SSM"
-  }
-
-  # SSM Session Manager ports
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]
-    description = "SSM Session Manager HTTPS"
-  }
-
-  # SSM Messages ports
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]
-    description = "SSM Messages HTTPS"
+    description = "HTTPS for SSM Session Manager and Messages"
   }
 
   tags = merge(var.common_tags, {
