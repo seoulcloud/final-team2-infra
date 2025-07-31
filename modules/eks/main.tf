@@ -154,11 +154,7 @@ resource "aws_iam_role" "cluster_admin" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          AWS = [
-            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root",
-            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/*",
-            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/*"
-          ]
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
         }
       }
     ]
