@@ -404,7 +404,6 @@ resource "aws_launch_template" "node_group" {
     tags = merge(var.common_tags, {
       Name = "${var.cluster_name}-${each.key}-node"
       Type = "EKS-Node"
-      "kubernetes.io/cluster/${var.cluster_name}" = "owned"
     })
   }
 
