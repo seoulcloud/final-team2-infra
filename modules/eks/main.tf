@@ -108,6 +108,75 @@ resource "aws_iam_role_policy" "node_group_ssm_custom" {
   })
 }
 
+# EBS CSI Driver IAM Policy
+resource "aws_iam_policy" "ebs_csi_driver" {
+  name        = "${var.project_name}-${var.environment}-ebs-csi-driver-policy"
+  description = "EBS CSI driver policy for EKS"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:AttachVolume",
+          "ec2:CreateSnapshot",
+          "ec2:CreateTags",
+          "ec2:CreateVolume",
+          "ec2:DeleteSnapshot",
+          "ec2:DeleteTags",
+          "ec2:DeleteVolume",
+          "ec2:DescribeInstances",
+          "ec2:DescribeSnapshots",
+          "ec2:DescribeTags",
+          "ec2:DescribeVolumes",
+          "ec2:DetachVolume"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-ebs-csi-driver-policy"
+    Type = "IAM-Policy"
+  })
+}
+
+# EBS CSI Driver IAM Role
+resource "aws_iam_role" "ebs_csi_driver" {
+  name = "${var.project_name}-${var.environment}-ebs-csi-driver-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(aws_eks_cluster.main.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-ebs-csi-driver-role"
+    Type = "IAM-Role"
+  })
+}
+
+# Attach EBS CSI Driver policy to role
+resource "aws_iam_role_policy_attachment" "ebs_csi_driver" {
+  role       = aws_iam_role.ebs_csi_driver.name
+  policy_arn = aws_iam_policy.ebs_csi_driver.arn
+}
+
 # EKS Cluster Security Group
 resource "aws_security_group" "cluster" {
   name_prefix = "${var.project_name}-${var.environment}-eks-cluster-"
@@ -221,6 +290,22 @@ resource "aws_eks_cluster" "main" {
   })
 }
 
+# OIDC Provider for EKS
+data "tls_certificate" "oidc_thumbprint" {
+  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "eks" {
+  url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.oidc_thumbprint.certificates[0].sha1_fingerprint]
+
+  tags = merge(var.common_tags, {
+    Name = "${var.cluster_name}-oidc-provider"
+    Type = "OIDC-Provider"
+  })
+}
+
 # EKS Node Groups
 resource "aws_eks_node_group" "main" {
   for_each = var.node_groups
@@ -234,7 +319,7 @@ resource "aws_eks_node_group" "main" {
   instance_types = each.value.instance_types
   ami_type       = each.value.ami_type
   capacity_type  = each.value.capacity_type
-  disk_size      = each.value.disk_size
+  
 
   # Scaling configuration
   scaling_config {
@@ -306,6 +391,15 @@ resource "aws_launch_template" "node_group" {
   # Monitoring
   monitoring {
     enabled = var.monitoring_enabled
+  }
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_size = each.value.disk_size
+      volume_type = "gp3"
+      delete_on_termination = true
+    }
   }
 
   tag_specifications {
@@ -381,9 +475,15 @@ resource "aws_eks_addon" "kube_proxy" {
 resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "aws-ebs-csi-driver"
+  addon_version = "v1.25.0-eksbuild.1"
   
   resolve_conflicts_on_create = var.addon_resolve_conflicts
   resolve_conflicts_on_update = var.addon_resolve_conflicts
+  
+  depends_on = [
+    aws_iam_role_policy_attachment.ebs_csi_driver,
+    aws_eks_node_group.main
+  ]
   
   tags = merge(var.common_tags, {
     Name = "${var.cluster_name}-ebs-csi-driver"

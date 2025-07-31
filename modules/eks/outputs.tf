@@ -79,6 +79,11 @@ output "node_group_iam_role_arn" {
   value       = aws_iam_role.node_group.arn
 }
 
+output "ebs_csi_driver_iam_role_arn" {
+  description = "IAM role ARN of the EBS CSI driver"
+  value       = aws_iam_role.ebs_csi_driver.arn
+}
+
 # Connection Information
 output "kubectl_config" {
   description = "kubectl config file content for connecting to the cluster"
