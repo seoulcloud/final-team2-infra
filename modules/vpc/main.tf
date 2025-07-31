@@ -38,7 +38,7 @@ resource "aws_subnet" "eks_private" {
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-EKS-private-subnet-${substr(local.azs[count.index], -1, 1)}"
     Type = "EKS-Private-Subnet"
-    "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/role/internal-elb" = "1" # 내부서비스용 LB는 이서브넷에 생성
     "kubernetes.io/cluster/${var.project_name}-${var.environment}-cluster" = "owned"
   })
 }
@@ -72,6 +72,23 @@ resource "aws_subnet" "mongodb_private" {
     Database = "MongoDB"
   })
 }
+
+# Elasticache Private Subnets (2 AZs)
+resource "aws_subnet" "elasticache_private" {
+  count = length(var.elasticache_private_subnets)
+
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.elasticache_private_subnets[count.index]
+  availability_zone = local.azs[count.index]
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-Elasticache-private-subnet-${substr(local.azs[count.index], -1, 1)}"
+    Type = "Elasticache-Private-Subnet"
+    Database = "Elasticache"
+  })
+}
+
+
 
 # Elastic IPs for NAT Gateways
 resource "aws_eip" "nat" {
@@ -179,9 +196,18 @@ resource "aws_route_table_association" "mongodb_private" {
   route_table_id = aws_route_table.private[count.index].id
 }
 
+# Associate Elasticache Private Subnets with Route Tables
+resource "aws_route_table_association" "elasticache_private" {
+  count = length(aws_subnet.elasticache_private)
+
+  subnet_id      = aws_subnet.elasticache_private[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
+}
+
+
 # SSM VPC Endpoints (Required for private subnet access)
 resource "aws_vpc_endpoint" "ssm" {
-  count = var.enable_ssm_endpoints ? 1 : 0
+  count = var.enable_ssm_endpoints ? 1 : 0 # 조건부생성 true | false
 
   vpc_id              = aws_vpc.main.id
   service_name        = "com.amazonaws.${var.aws_region}.ssm"

@@ -61,6 +61,17 @@ output "mongodb_private_subnet_cidrs" {
   value       = aws_subnet.mongodb_private[*].cidr_block
 }
 
+# Elasticache Private Subnets
+output "elasticache_private_subnets" {
+  description = "List of IDs of Elasticache private subnets"
+  value       = aws_subnet.elasticache_private[*].id
+}
+
+output "elasticache_private_subnet_cidrs" {
+  description = "List of CIDR blocks of Elasticache private subnets"
+  value       = aws_subnet.elasticache_private[*].cidr_block
+}
+
 # NAT Gateways
 output "nat_gateway_ids" {
   description = "List of IDs of NAT Gateways"
