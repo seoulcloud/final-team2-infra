@@ -101,8 +101,8 @@ output "ssm_connection_guide" {
   value = var.enable_ssm_access ? {
     description = "To connect to EKS nodes via SSM Session Manager:"
     commands = [
-      "1. List running instances: aws ec2 describe-instances --filters 'Name=tag:kubernetes.io/cluster/${aws_eks_cluster.main.name},Values=owned' --query 'Reservations[].Instances[].InstanceId' --output table --profile personal",
-      "2. Start SSM session: aws ssm start-session --target <instance-id> --profile personal",
+      "1. List running instances: aws ec2 describe-instances --filters 'Name=tag:kubernetes.io/cluster/${aws_eks_cluster.main.name},Values=owned' --query 'Reservations[].Instances[].InstanceId' --output table",
+      "2. Start SSM session: aws ssm start-session --target <instance-id>",
       "3. Once connected, you can run kubectl commands as the ec2-user"
     ]
   } : null
