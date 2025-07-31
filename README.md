@@ -1,3 +1,4 @@
+
 # Team2 Infrastructure with Terraform
 
 이 프로젝트는 AWS에서 EKS 클러스터와 데이터베이스를 포함한 완전한 인프라를 Terraform으로 관리합니다.
@@ -10,12 +11,14 @@
   - EKS 서브넷: `10.0.10.0/24`, `10.0.11.0/24`
   - PostgreSQL 서브넷: `10.0.20.0/24`, `10.0.21.0/24`
   - MongoDB 서브넷: `10.0.30.0/24`, `10.0.31.0/24`
+  - Elasticache 서브넷 : `10.0.40.0/24`, `10.0.41.0/24`
 - **SSM VPC 엔드포인트**: 프라이빗 서브넷에서 SSM 접근 가능
 
 ### 1단계: EKS 클러스터
-- **EKS 클러스터**: Kubernetes 1.28
-- **노드 그룹**: `t3.medium/large` (On-Demand + Spot 혼합)
+- **EKS 클러스터**: Kubernetes 1.30
+- **노드 그룹**: `t3.medium/large` (On-Demand + Spot 혼합) << 테스트환경에서 small사용>>
 - **SSM 접근**: 모든 EKS 노드에서 SSM Session Manager 지원
+- **AccessEntry only : Configmap이 아닌 AWS 공식 권장사항 적용
 
 ## 📁 프로젝트 구조 (단일 환경)
 
@@ -75,6 +78,7 @@ aws configure
 **Terraform Variables:**
 - `db_password_postgresql` (sensitive)
 - `db_password_mongodb` (sensitive)
+- `db_password_elasticache` (sensitive)
 
 ### Terraform Cloud로 배포
 
@@ -85,13 +89,6 @@ aws configure
 # Apply는 Terraform Cloud UI에서 확인 후 실행
 ```
 
-## 🖥️ 로컬 State 사용 (간단한 방법)
-
-### 데이터베이스 패스워드 설정
-
-```powershell
-.\scripts\set-env-vars.ps1
-```
 
 ### 배포
 
@@ -114,7 +111,7 @@ aws configure
 aws ec2 describe-instances --filters "Name=tag:kubernetes.io/cluster/team2-infra-team-cluster,Values=owned" --query "Reservations[].Instances[].InstanceId" --output table
 ```
 
-2. **SSM 세션 시작**:
+2. **SSM 세션 시작**: 플러그인 없으면 설치해서 하면되는데 없이 쓸 수 있는 명령어 사용해도 됩니다.
 ```powershell
 aws ssm start-session --target <instance-id>
 ```
@@ -164,3 +161,33 @@ aws sts get-caller-identity
 ```powershell
 terraform login
 ```
+
+4. **EKS 의존성**
+권한 및 policy가 role보다 먼저생기는경우가 많고
+클러스터보다 먼저 생겨서 create fail 되는경우 많았습니다.
+depend on 설정하고 그래도 안되는건 timeout 처리해서 기다리는 방식으로 처리했고
+AccessEntry 관련 권한도 마찬가지인 경우가 많아 의존성 체인을 향후 정리해놓으면 구축하거나 유지보수할때 용이해보입니다.
+
+=======
+# final-team2-infra
+✈️ GotEEgo 서비스의 인프라 설정 및 배포 코드를 관리하는 레포지토리입니다. CLD-3rd Team 2에서 운영합니다.
+terraform/  
+├── modules/  
+│   ├── vpc/                    # VPC, 서브넷, 라우팅 (완)  
+│   ├── eks/                    # EKS 클러스터 (완)  
+│   ├── rds/                    # PostgreSQL  
+│   ├── mongodb/                # MongoDB  
+│   ├── elasticache/            # Redis  
+│   ├── s3-cloudfront/          # S3 + CloudFront + Route53  
+│   ├── monitoring/             # Prometheus, Grafana  
+│   ├── argocd/                 # ArgoCD  
+│   └── iam/                    # IAM Role, Policy  
+├── environments/  
+│   ├── dev/  
+│   └── prod/  
+├── variables.tf  
+├── outputs.tf  
+├── backend.tf  
+└── versions.tf  
+
+테스트 환경에서 구축시간 단축시킬려고 우선 적은용량 적용했는데 마무리테스트 할때쯤엔 최초계획대로 올려야 합니다.
