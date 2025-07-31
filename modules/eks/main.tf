@@ -242,6 +242,24 @@ resource "aws_security_group" "node_group" {
     description = "HTTPS for SSM"
   }
 
+  # SSM Session Manager ports
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+    description = "SSM Session Manager HTTPS"
+  }
+
+  # SSM Messages ports
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+    description = "SSM Messages HTTPS"
+  }
+
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-eks-node-sg"
     Type = "EKS-NodeGroup-SecurityGroup"
@@ -333,10 +351,7 @@ resource "aws_eks_node_group" "main" {
     max_unavailable_percentage = var.max_unavailable_percentage
   }
 
-  # Remote access configuration (for SSM)
-  remote_access {
-    source_security_group_ids = [aws_security_group.node_group.id]
-  }
+  # Remote access configuration is handled in launch template for SSM access
 
   # Launch template for advanced configuration
   launch_template {
