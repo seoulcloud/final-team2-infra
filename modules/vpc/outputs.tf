@@ -115,6 +115,12 @@ output "ssm_endpoint_security_group_id" {
   value       = var.enable_ssm_endpoints ? aws_security_group.ssm_endpoint[0].id : null
 }
 
+output "postgresql_sg_id" {
+  value = aws_security_group.postgresql.id
+}
+output "mongodb_sg_id" {
+  value = aws_security_group.mongodb.id
+}
 # Availability Zones
 output "availability_zones" {
   description = "List of availability zones used"

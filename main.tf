@@ -76,6 +76,98 @@ module "eks" {
   common_tags = var.common_tags
 }
 
+# DB Module
+
+module "postgresql_server" {
+  source            = "./modules/postgresql_server"
+  ami_id            = var.postgresql_ami_id
+  instance_type     = var.db_instance_type
+  subnet_id         = module.vpc.postgresql_private_subnets[0]
+  security_group_ids = [module.vpc.postgresql_sg_id]
+  # key_name          = var.key_name
+
+  project_name      = var.project_name
+  environment       = var.environment
+  db_type           = "PostgreSQL"
+  common_tags       = var.common_tags
+
+  db_password       = var.db_password_postgresql
+}
+
+module "mongodb_server" {
+  source            = "./modules/mongodb_server"
+  ami_id            = var.mongodb_ami_id
+  instance_type     = var.db_instance_type
+  subnet_id         = module.vpc.mongodb_private_subnets[0]
+  security_group_ids = [module.vpc.mongodb_sg_id]
+  # key_name          = var.key_name
+
+  project_name      = var.project_name
+  environment       = var.environment
+  db_type           = "MongoDB"
+  common_tags       = var.common_tags
+
+  db_password         = var.db_password_mongodb 
+}
+
+## SSM Parameter 등록 ======
+
+resource "aws_ssm_parameter" "db_password_postgresql" {
+  name  = "/${var.project_name}/${var.environment}/db_password_postgresql"
+  type  = "SecureString"  # 암호화 저장
+  value = var.db_password_postgresql
+  tags  = var.common_tags
+}
+
+resource "aws_ssm_parameter" "db_password_mongodb" {
+  name  = "/${var.project_name}/${var.environment}/db_password_mongodb"
+  type  = "SecureString"
+  value = var.db_password_mongodb
+  tags  = var.common_tags
+}
+
+#==========================
+
+module "my_irsa" {
+  source = "./modules/irsa"  # or wherever your IRSA module is
+
+  name                       = "my-app-sa"
+  namespace                  = "default"
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+  policy_arns               = [
+    aws_iam_policy.ssm_parameter_read.arn
+  ]
+}
+
+
+resource "aws_iam_policy" "ssm_parameter_read" {
+  name        = "${var.project_name}-${var.environment}-ssm-parameter-read"
+  description = "Policy to allow read access to SSM parameters"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "ssm:GetParameters",
+          "ssm:GetParameter",
+          "ssm:GetParameterHistory",
+          "ssm:DescribeParameters"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-ssm-parameter-read-policy"
+  })
+}
+
+#==========================
+
 # Output important values
 output "vpc_id" {
   description = "VPC ID"
@@ -96,3 +188,4 @@ output "ssm_session_manager_url" {
   description = "SSM Session Manager Connection Guide"
   value       = "Use 'aws ssm start-session --target <instance-id> --profile default' to connect"
 } 
+

@@ -295,3 +295,58 @@ resource "aws_security_group" "ssm_endpoint" {
     create_before_destroy = true
   }
 } 
+
+# Security Group for PostgreSQL 
+
+resource "aws_security_group" "postgresql" {
+  name        = "${var.project_name}-${var.environment}-postgresql-sg"
+  description = "Allow PostgreSQL access"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]  # 내부에서만 접근 허용
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-postgresql-sg"
+    Type = "PostgreSQL-SG"
+  })
+}
+
+
+# Security Group for MongoDB 
+
+resource "aws_security_group" "mongodb" {
+  name        = "${var.project_name}-${var.environment}-mongodb-sg"
+  description = "Allow MongoDB access"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 27017
+    to_port     = 27017
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-mongodb-sg"
+    Type = "MongoDB-SG"
+  })
+}
