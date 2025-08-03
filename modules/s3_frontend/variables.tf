@@ -1,6 +1,3 @@
-# 1. bucket_name
-# 2. cloudfront_oac_id
-# 3. tags, acl, versioning
 
 
 variable "prefix" {
@@ -18,7 +15,3 @@ variable "bucket_name" {
   description = "S3 버킷 이름"
 }
 
-variable "cloudfront_distribution_arn" {
-  description = "ARN of the CloudFront distribution"
-  type        = string
-}

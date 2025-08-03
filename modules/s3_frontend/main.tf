@@ -1,10 +1,8 @@
-# 1. aws_s3_bucket
-# 2. aws_s3_bucket_policy
-# 3. aws_cloudfront_origin_access_control (OAC)
-# 4. aws_cloudfront_distribution
+
 
 resource "aws_s3_bucket" "frontend" {
   bucket = "${var.prefix}-${var.bucket_name}"
+  # bucket = aws_s3_bucket.frontend.id
 
 
   tags = {
@@ -28,7 +26,7 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
         Resource = "${aws_s3_bucket.frontend.arn}/*"
         Condition = {
           StringEquals = {
-            "AWS:SourceArn" = var.cloudfront_distribution_arn
+            "AWS:SourceArn" = var.oac_id
           }
         }
       }

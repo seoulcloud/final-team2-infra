@@ -1,5 +1,3 @@
-# 1. aws_s3_bucket
-# 2. private access only, versioning on
 
 
 resource "aws_s3_bucket" "backend" {

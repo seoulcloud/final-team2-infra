@@ -1,15 +1,7 @@
-resource "aws_s3_bucket" "static_site" {
-  bucket = var.bucket_name
-
-  tags = {
-    Name = "${var.bucket_name}-static-site"
-    Environment = var.environment  
-    Project     = "my-project"     
-  }
-}
 
 resource "aws_s3_bucket_website_configuration" "static_site" {
-  bucket = aws_s3_bucket.static_site.id
+  bucket = var.bucket_name 
+  # bucket = var.bucket_name
 
   index_document {
     suffix = "index.html"
@@ -21,7 +13,7 @@ resource "aws_s3_bucket_website_configuration" "static_site" {
 }
 
 resource "aws_s3_bucket_policy" "static_site_policy" {
-  bucket = aws_s3_bucket.static_site.id
+  bucket = var.bucket_name
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -29,7 +21,7 @@ resource "aws_s3_bucket_policy" "static_site_policy" {
       Effect    = "Allow"
       Principal = "*"
       Action    = "s3:GetObject"
-      Resource  = "${aws_s3_bucket.static_site.arn}/*"
+      Resource  = "arn:aws:s3:::${var.bucket_name}/*"
     }]
   })
 
@@ -38,14 +30,14 @@ resource "aws_s3_bucket_policy" "static_site_policy" {
 
 
 resource "aws_s3_bucket_versioning" "static_site_versioning" {
-  bucket = aws_s3_bucket.static_site.id
+  bucket = var.bucket_name
   versioning_configuration {
     status = "Enabled"
   }
 }
 
 resource "aws_s3_bucket_public_access_block" "allow_public" {
-  bucket = aws_s3_bucket.static_site.id
+  bucket = var.bucket_name
 
   block_public_acls       = false
   block_public_policy     = false

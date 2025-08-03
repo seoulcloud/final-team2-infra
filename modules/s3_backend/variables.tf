@@ -1,6 +1,3 @@
-# 1. bucket_name
-# 2. enable_versioning (옵션)
-# 3. tags, lifecycle_rule, server_side_encryption_configuration
 
 variable "prefix" {
   type        = string

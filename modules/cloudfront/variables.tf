@@ -24,8 +24,9 @@ variable "viewer_protocol_policy" {
 }
 
 variable "cloudfront_distribution_arn" {
-  description = "ARN of the CloudFront distribution"
+  description = "CloudFront distribution ARN"
   type        = string
+  default     = null # 기본값 추가로 필수 입력 해제
 }
 
 variable "acm_certificate_arn" {

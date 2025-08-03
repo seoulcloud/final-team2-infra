@@ -99,7 +99,7 @@ output "ssm_session_manager_url" {
 
 # OAC ===========
 
-# OAC 생성 (한 번만)
+# OAC 생성
 module "cloudfront_oac" {
   source      = "./modules/cloudfront_oac"
   name        = "myapp-oac"
@@ -113,16 +113,16 @@ output "oac_id" {
 
 #s3======================
 
-# s3_frontend (prod 환경 예시)
+# s3_frontend (prod 환경)
 module "s3_frontend_prod" {
   source     = "./modules/s3_frontend"
   prefix     = "prod"
   bucket_name = "myapp-frontend"
   oac_id     = module.cloudfront_oac.oac_id
-  cloudfront_distribution_arn = module.cloudfront_prod.aws_cloudfront_distribution_arn
+  # cloudfront_distribution_arn = module.cloudfront_prod.aws_cloudfront_distribution_arn
 }
 
-# s3_backend (prod 환경 예시)
+# s3_backend (prod 환경)
 module "s3_backend_prod" {
   source       = "./modules/s3_backend"
   prefix       = "prod"
@@ -147,9 +147,13 @@ module "cloudfront_prod" {
   prefix                 = "prod"
   oac_id                 = module.cloudfront_oac.oac_id
   s3_bucket_domain_name  = module.s3_frontend_prod.bucket_domain_name
-  cloudfront_distribution_arn = module.cloudfront_prod.aws_cloudfront_distribution_arn
+   acm_certificate_arn   = module.acm_cert.certificate_arn
 
-  acm_certificate_arn    = aws_acm_certificate.cert.arn
+   depends_on = [
+    module.acm_dns_validation,
+    module.cloudfront_oac,
+    module.s3_frontend_prod
+  ]
 }
 
 
@@ -169,135 +173,85 @@ output "cloudfront_domain_name" {
 #static_site
 
 module "web_hosting" {
-  source      = "./modules/web_hosting"  # 실제 모듈 경로로 수정하세요
-  bucket_name = "goteego"         # 원하는 버킷 이름 넣기 (ex: prod-myapp-frontend)
+  source      = "./modules/web_hosting"  
+  bucket_name = module.s3_frontend_prod.bucket_name  
   environment = var.environment
   project_name = var.project_name
 }
-
-
-
-resource "aws_route53_record" "frontend" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "www.goteego.store"    # www.goteego.shop
-  type    = "A"
-
-  # alias {
-  #   name                   = module.web_hosting.website_endpoint      # S3 웹사이트 엔드포인트
-  #   zone_id                = module.web_hosting.hosted_zone_id        # S3 웹사이트 호스팅 존 ID
-  #   evaluate_target_health = false
-  # }
-  alias {
-    name                   = module.cloudfront_prod.domain_name
-    zone_id                = "Z2FDTNDATAQYW2"  # CloudFront 고정 Hosted Zone ID
-    evaluate_target_health = false
-  }
-
-}
-
-
-resource "aws_route53_record" "root" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "goteego.store"
-  type    = "A"
-
-  alias {
-    name                   = module.cloudfront_prod.domain_name
-    zone_id                = "Z2FDTNDATAQYW2"
-    evaluate_target_health = false
-  }
-}
-
-resource "aws_route53_zone" "main" {
-  name = "goteego.store"
-}
-
-output "route53_zone_id" {
-  description = "Route53 Hosted Zone ID without prefix"
-  value       = replace(aws_route53_zone.main.zone_id, "/hostedzone/", "")
-}
-
-output "route53_zone_name" {
-  value = aws_route53_zone.main.name
-}
-
-#================================
-#ACM 인증서 요청
 
 provider "aws" {
   alias  = "virginia"
   region = "us-east-1"
 }
 
-resource "aws_acm_certificate" "cert" {
-  provider          = aws.virginia
-  domain_name       = "goteego.store"
-  validation_method = "DNS"
+# Route53 존 생성 (최상위, 독립)
 
-  subject_alternative_names = ["www.goteego.store","goteego.store"]
-
-  lifecycle {
-    create_before_destroy = true
-  }
+resource "aws_route53_zone" "main" {
+  name = var.domain_name # "goteego.store" 대신 변수 사용
 }
 
-output "debug_acm_certificate_arn" {
-  value = aws_acm_certificate.cert.arn
+output "zone_id" {
+  value = aws_route53_zone.main.zone_id
+}
+
+# ACM 인증서 생성 (us-east-1 리전 지정 provider)
+module "acm_cert" {
+  source = "./modules/acm_certificate"
+  providers = { aws = aws.virginia }
+
+  domain_name = var.domain_name
+  subject_alternative_names = var.subject_alternative_names
+}
+
+output "certificate_arn" {
+  value = module.acm_cert.certificate_arn
+}
+
+# ACM DNS 검증용 레코드 생성 
+module "acm_dns_validation" {
+  source = "./modules/acm_dns_validation"
+  providers = { aws = aws.virginia }
+
+  certificate_arn = module.acm_cert.certificate_arn
+  zone_id        = aws_route53_zone.main.zone_id
+  certificate_domain_validation_options = module.acm_cert.domain_validation_options
+
+  depends_on = [
+    aws_route53_zone.main,
+    module.acm_cert
+  ]
 }
 
 
-
-# DNS 검증용 레코드 Route53에 생성
-resource "aws_route53_record" "cert_validation" {
-  provider = aws.virginia
-  for_each = {
-    for dvo in aws_acm_certificate.cert.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      type   = dvo.resource_record_type
-      record = dvo.resource_record_value
-    }
-  }
-
-  zone_id = aws_route53_zone.main.zone_id  # goteego.shop 호스팅 존 ID 여야 함
-  name    = each.value.name
-  type    = each.value.type
-  records = [each.value.record]
-  ttl     = 60
-
-  depends_on = [aws_acm_certificate.cert]
-}
-# ACM 인증서 DNS 검증을 최종적으로 완료 -> 인증서를 ISSUED 상태로 전환
-resource "aws_acm_certificate_validation" "cert_validation" {
-  provider                = aws.virginia
-  certificate_arn         = aws_acm_certificate.cert.arn
-  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
-
-  depends_on = [aws_route53_record.cert_validation]
-}
-#==================================
-
-# 루트 도메인 A 레코드 생성
-
+# Route53 레코드 (CloudFront 도메인)
 resource "aws_route53_record" "root" {
   zone_id = aws_route53_zone.main.zone_id
-  name    = "goteego.store"  
+  name    = var.domain_name
   type    = "A"
-
   alias {
     name                   = module.cloudfront_prod.domain_name
-    zone_id                = "Z2FDTNDATAQYW2"  # CloudFront 고정 Hosted Zone ID
+    zone_id                = "Z2FDTNDATAQYW2" # CloudFront 고정 Hosted Zone ID
     evaluate_target_health = false
   }
+  depends_on = [
+    aws_route53_zone.main,
+    module.cloudfront_prod
+  ]
 }
 
 resource "aws_route53_record" "frontend" {
   zone_id = aws_route53_zone.main.zone_id
-  name    = "www.goteego.store"  
+  name    = "www.${var.domain_name}"
   type    = "A"
-
   alias {
     name                   = module.cloudfront_prod.domain_name
-    zone_id                = "Z2FDTNDATAQYW2"  # CloudFront 고정 Hosted Zone ID
+    zone_id                = "Z2FDTNDATAQYW2" # CloudFront 고정 Hosted Zone ID
     evaluate_target_health = false
   }
+  depends_on = [
+    aws_route53_zone.main,
+    module.cloudfront_prod
+  ]
 }
+
+# ==========================
