@@ -107,9 +107,9 @@ module "cloudfront_oac" {
 }
 
 
-output "oac_id" {
-  value = module.cloudfront_oac.oac_id
-}
+# output "oac_id" {
+#   value = module.cloudfront_oac.oac_id
+# }
 
 #s3======================
 
@@ -130,13 +130,13 @@ module "s3_backend_prod" {
   lifecycle_days = 30
 }
 
-output "frontend_bucket_name" {
-  value = module.s3_frontend_prod.bucket_name
-}
+# output "frontend_bucket_name" {
+#   value = module.s3_frontend_prod.bucket_name
+# }
 
-output "backend_bucket_name" {
-  value = module.s3_backend_prod.bucket_name
-}
+# output "backend_bucket_name" {
+#   value = module.s3_backend_prod.bucket_name
+# }
 
 #========================
 
@@ -157,18 +157,18 @@ module "cloudfront_prod" {
 }
 
 
-output "cloudfront_url" {
-  value = module.cloudfront_prod.domain_name
-}
+# output "cloudfront_url" {
+#   value = module.cloudfront_prod.domain_name
+# }
 
-output "cloudfront_id" {
-  value = module.cloudfront_prod.distribution_id
-}
+# output "cloudfront_id" {
+#   value = module.cloudfront_prod.distribution_id
+# }
 
-output "cloudfront_domain_name" {
-  value = module.cloudfront_prod.domain_name
-  description = "CloudFront 배포 도메인 네임 (예: dxxxxx.cloudfront.net)"
-}
+# output "cloudfront_domain_name" {
+#   value = module.cloudfront_prod.domain_name
+#   description = "CloudFront 배포 도메인 네임 (예: dxxxxx.cloudfront.net)"
+# }
 #========================
 #static_site
 
@@ -190,9 +190,9 @@ resource "aws_route53_zone" "main" {
   name = var.domain_name # "goteego.store" 대신 변수 사용
 }
 
-output "zone_id" {
-  value = aws_route53_zone.main.zone_id
-}
+# output "zone_id" {
+#   value = aws_route53_zone.main.zone_id
+# }
 
 # ACM 인증서 생성 (us-east-1 리전 지정 provider)
 module "acm_cert" {
@@ -203,9 +203,9 @@ module "acm_cert" {
   subject_alternative_names = var.subject_alternative_names
 }
 
-output "certificate_arn" {
-  value = module.acm_cert.certificate_arn
-}
+# output "certificate_arn" {
+#   value = module.acm_cert.certificate_arn
+# }
 
 # ACM DNS 검증용 레코드 생성 
 module "acm_dns_validation" {
