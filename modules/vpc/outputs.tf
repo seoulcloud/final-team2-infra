@@ -97,12 +97,12 @@ output "private_route_table_ids" {
 # SSM Endpoints
 output "ssm_vpc_endpoint_id" {
   description = "ID of SSM VPC endpoint"
-  value       = var.enable_ssm_endpoints ? aws_vpc_endpoint.ssm[0].id : null
+  value       = var.enable_ssm_endpoints && length(aws_vpc_endpoint.ssm) > 0 ? aws_vpc_endpoint.ssm[0].id : null
 }
 
 output "ssm_vpc_endpoint_dns_names" {
   description = "DNS names of SSM VPC endpoints"
-  value = var.enable_ssm_endpoints ? {
+  value = var.enable_ssm_endpoints && length(aws_vpc_endpoint.ssm) > 0 ? {
     ssm          = aws_vpc_endpoint.ssm[0].dns_entry[0]["dns_name"]
     ssm_messages = aws_vpc_endpoint.ssm_messages[0].dns_entry[0]["dns_name"]
     ec2_messages = aws_vpc_endpoint.ec2_messages[0].dns_entry[0]["dns_name"]
@@ -112,7 +112,7 @@ output "ssm_vpc_endpoint_dns_names" {
 # Security Groups
 output "ssm_endpoint_security_group_id" {
   description = "ID of SSM endpoint security group"
-  value       = var.enable_ssm_endpoints ? aws_security_group.ssm_endpoint[0].id : null
+  value       = var.enable_ssm_endpoints && length(aws_security_group.ssm_endpoint) > 0 ? aws_security_group.ssm_endpoint[0].id : null
 }
 
 # Availability Zones
