@@ -24,3 +24,9 @@ variable "cluster_oidc_provider_arn" {
   description = "EKS OIDC Provider ARN"
   type        = string
 } 
+variable "project_name" {
+  type = string
+}
+variable "environment" {
+  type = string
+}

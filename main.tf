@@ -128,43 +128,38 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
 
 #==========================
 
-module "my_irsa" {
-  source = "./modules/irsa"  # or wherever your IRSA module is
-
-  name                       = "my-app-sa"
-  namespace                  = "default"
-  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
-  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
-  policy_arns               = [
-    aws_iam_policy.ssm_parameter_read.arn
-  ]
-}
-
-
-resource "aws_iam_policy" "ssm_parameter_read" {
-  name        = "${var.project_name}-${var.environment}-ssm-parameter-read"
-  description = "Policy to allow read access to SSM parameters"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect   = "Allow",
-        Action   = [
-          "ssm:GetParameters",
-          "ssm:GetParameter",
-          "ssm:GetParameterHistory",
-          "ssm:DescribeParameters"
-        ],
-        Resource = "*"
-      }
-    ]
-  })
-
-  tags = merge(var.common_tags, {
-    Name = "${var.project_name}-${var.environment}-ssm-parameter-read-policy"
-  })
-}
+# module "my_irsa" {
+#   source = "./modules/irsa"  # or wherever your IRSA module is
+#   name                       = "my-app-sa"
+#   namespace                  = "default"
+#   cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+#   cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+#   policy_arns               = [
+#     aws_iam_policy.ssm_parameter_read.arn
+#   ]
+# }
+# resource "aws_iam_policy" "ssm_parameter_read" {
+#   name        = "${var.project_name}-${var.environment}-ssm-parameter-read"
+#   description = "Policy to allow read access to SSM parameters"
+#   policy = jsonencode({
+#     Version = "2012-10-17",
+#     Statement = [
+#       {
+#         Effect   = "Allow",
+#         Action   = [
+#           "ssm:GetParameters",
+#           "ssm:GetParameter",
+#           "ssm:GetParameterHistory",
+#           "ssm:DescribeParameters"
+#         ],
+#         Resource = "*"
+#       }
+#     ]
+#   })
+#   tags = merge(var.common_tags, {
+#     Name = "${var.project_name}-${var.environment}-ssm-parameter-read-policy"
+#   })
+# }
 
 #==========================
 
