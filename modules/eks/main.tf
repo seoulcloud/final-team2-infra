@@ -6,6 +6,30 @@ data "aws_caller_identity" "current" {}
 # Data source for current AWS region
 data "aws_region" "current" {}
 
+# SSM parmeter 관련 정책 ===================================
+
+resource "aws_iam_policy" "ssm_parameter_read" {
+  name        = "${var.project_name}-${var.environment}-ssm-read"
+  description = "Allows read access to SSM parameters"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+        Resource = [
+          "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/${var.environment}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# =========================================================
 # EKS Cluster IAM Role
 resource "aws_iam_role" "cluster" {
   name = "${var.project_name}-${var.environment}-eks-cluster-role"
@@ -58,6 +82,12 @@ resource "aws_iam_role" "node_group" {
   })
 }
 
+# Attach required ssm prameter to node group role =========
+resource "aws_iam_role_policy_attachment" "node_group_ssm_parameter_read" {
+  policy_arn = aws_iam_policy.ssm_parameter_read.arn
+  role       = aws_iam_role.node_group.name
+}
+# =========================================================
 # Attach required policies to node group role
 resource "aws_iam_role_policy_attachment" "node_group_worker_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"

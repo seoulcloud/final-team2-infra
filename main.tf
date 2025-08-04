@@ -76,6 +76,56 @@ module "eks" {
   common_tags = var.common_tags
 }
 
+# DB Module
+
+module "postgresql_server" {
+  source            = "./modules/postgresql_server"
+  ami_id            = var.postgresql_ami_id
+  instance_type     = var.db_instance_type
+  subnet_id         = module.vpc.postgresql_private_subnets[0]
+  security_group_ids = [module.vpc.postgresql_sg_id]
+  # key_name          = var.key_name
+
+  project_name      = var.project_name
+  environment       = var.environment
+  db_type           = "PostgreSQL"
+  common_tags       = var.common_tags
+
+  db_password       = var.db_password_postgresql
+}
+
+module "mongodb_server" {
+  source            = "./modules/mongodb_server"
+  ami_id            = var.mongodb_ami_id
+  instance_type     = var.db_instance_type
+  subnet_id         = module.vpc.mongodb_private_subnets[0]
+  security_group_ids = [module.vpc.mongodb_sg_id]
+  # key_name          = var.key_name
+
+  project_name      = var.project_name
+  environment       = var.environment
+  db_type           = "MongoDB"
+  common_tags       = var.common_tags
+
+  db_password         = var.db_password_mongodb 
+}
+
+## SSM Parameter 등록 ======
+
+resource "aws_ssm_parameter" "db_password_postgresql" {
+  name  = "/${var.project_name}/${var.environment}/db_password_postgresql"
+  type  = "SecureString"  # 암호화 저장
+  value = var.db_password_postgresql
+  tags  = var.common_tags
+}
+
+resource "aws_ssm_parameter" "db_password_mongodb" {
+  name  = "/${var.project_name}/${var.environment}/db_password_mongodb"
+  type  = "SecureString"
+  value = var.db_password_mongodb
+  tags  = var.common_tags
+}
+
 # Output important values
 output "vpc_id" {
   description = "VPC ID"
@@ -96,6 +146,7 @@ output "ssm_session_manager_url" {
   description = "SSM Session Manager Connection Guide"
   value       = "Use 'aws ssm start-session --target <instance-id> --profile default' to connect"
 } 
+
 
 # OAC ===========
 
