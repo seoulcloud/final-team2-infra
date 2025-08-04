@@ -110,7 +110,7 @@ module "mongodb_server" {
   db_password         = var.db_password_mongodb 
 }
 
-## SSM Parameter 등록 ======
+## SSM Parameter 등록 ====== test
 
 resource "aws_ssm_parameter" "db_password_postgresql" {
   name  = "/${var.project_name}/${var.environment}/db_password_postgresql"
