@@ -112,6 +112,12 @@ resource "aws_iam_role_policy_attachment" "node_group_ssm_policy" {
   role       = aws_iam_role.node_group.name
 }
 
+# EKS 접근 권한을 노드 그룹에 연결
+resource "aws_iam_role_policy_attachment" "node_group_eks_access" {
+  policy_arn = aws_iam_policy.ssm_eks_access.arn
+  role       = aws_iam_role.node_group.name
+}
+
 # Additional SSM permissions for EKS nodes
 resource "aws_iam_role_policy" "node_group_ssm_custom" {
   count = var.enable_ssm_access ? 1 : 0
@@ -186,6 +192,13 @@ resource "aws_iam_role" "cluster_admin" {
         Principal = {
           AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
         }
+      },
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
       }
     ]
   })
@@ -193,6 +206,43 @@ resource "aws_iam_role" "cluster_admin" {
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-eks-cluster-admin-role"
     Type = "EKS-Cluster-Admin-IAM-Role"
+  })
+}
+
+# SSM을 통한 EKS 접근을 위한 IAM 정책
+resource "aws_iam_policy" "ssm_eks_access" {
+  name        = "${var.project_name}-${var.environment}-ssm-eks-access-policy"
+  description = "Policy for SSM to access EKS cluster"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "eks:DescribeCluster",
+          "eks:ListClusters",
+          "eks:AccessKubernetesApi",
+          "eks:DescribeNodegroup",
+          "eks:ListNodegroups",
+          "eks:DescribeAddon",
+          "eks:ListAddons"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sts:GetCallerIdentity"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-ssm-eks-access-policy"
+    Type = "IAM-Policy"
   })
 }
 
