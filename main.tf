@@ -126,43 +126,6 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
   tags  = var.common_tags
 }
 
-#==========================
-
-# module "my_irsa" {
-#   source = "./modules/irsa"  # or wherever your IRSA module is
-#   name                       = "my-app-sa"
-#   namespace                  = "default"
-#   cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
-#   cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
-#   policy_arns               = [
-#     aws_iam_policy.ssm_parameter_read.arn
-#   ]
-# }
-# resource "aws_iam_policy" "ssm_parameter_read" {
-#   name        = "${var.project_name}-${var.environment}-ssm-parameter-read"
-#   description = "Policy to allow read access to SSM parameters"
-#   policy = jsonencode({
-#     Version = "2012-10-17",
-#     Statement = [
-#       {
-#         Effect   = "Allow",
-#         Action   = [
-#           "ssm:GetParameters",
-#           "ssm:GetParameter",
-#           "ssm:GetParameterHistory",
-#           "ssm:DescribeParameters"
-#         ],
-#         Resource = "*"
-#       }
-#     ]
-#   })
-#   tags = merge(var.common_tags, {
-#     Name = "${var.project_name}-${var.environment}-ssm-parameter-read-policy"
-#   })
-# }
-
-#==========================
-
 # Output important values
 output "vpc_id" {
   description = "VPC ID"
@@ -184,3 +147,162 @@ output "ssm_session_manager_url" {
   value       = "Use 'aws ssm start-session --target <instance-id> --profile default' to connect"
 } 
 
+
+# OAC ===========
+
+# OAC 생성
+module "cloudfront_oac" {
+  source      = "./modules/cloudfront_oac"
+  name        = "myapp-oac"
+  description = "OAC for myapp CloudFront"
+}
+
+
+# output "oac_id" {
+#   value = module.cloudfront_oac.oac_id
+# }
+
+#s3======================
+
+# s3_frontend (prod 환경)
+module "s3_frontend_prod" {
+  source     = "./modules/s3_frontend"
+  prefix     = "prod"
+  bucket_name = "myapp-frontend"
+  oac_id     = module.cloudfront_oac.oac_id
+  # cloudfront_distribution_arn = module.cloudfront_prod.aws_cloudfront_distribution_arn
+}
+
+# s3_backend (prod 환경)
+module "s3_backend_prod" {
+  source       = "./modules/s3_backend"
+  prefix       = "prod"
+  bucket_name  = "myapp-backend"
+  lifecycle_days = 30
+}
+
+# output "frontend_bucket_name" {
+#   value = module.s3_frontend_prod.bucket_name
+# }
+
+# output "backend_bucket_name" {
+#   value = module.s3_backend_prod.bucket_name
+# }
+
+#========================
+
+#cloud_front
+
+module "cloudfront_prod" {
+  source                 = "./modules/cloudfront"
+  prefix                 = "prod"
+  oac_id                 = module.cloudfront_oac.oac_id
+  s3_bucket_domain_name  = module.s3_frontend_prod.bucket_domain_name
+   acm_certificate_arn   = module.acm_cert.certificate_arn
+
+   depends_on = [
+    module.acm_dns_validation,
+    module.cloudfront_oac,
+    module.s3_frontend_prod
+  ]
+}
+
+
+# output "cloudfront_url" {
+#   value = module.cloudfront_prod.domain_name
+# }
+
+# output "cloudfront_id" {
+#   value = module.cloudfront_prod.distribution_id
+# }
+
+# output "cloudfront_domain_name" {
+#   value = module.cloudfront_prod.domain_name
+#   description = "CloudFront 배포 도메인 네임 (예: dxxxxx.cloudfront.net)"
+# }
+#========================
+#static_site
+
+module "web_hosting" {
+  source      = "./modules/web_hosting"  
+  bucket_name = module.s3_frontend_prod.bucket_name  
+  environment = var.environment
+  project_name = var.project_name
+}
+
+provider "aws" {
+  alias  = "virginia"
+  region = "us-east-1"
+}
+
+# Route53 존 생성 (최상위, 독립)
+
+resource "aws_route53_zone" "main" {
+  name = var.domain_name # "goteego.store" 대신 변수 사용
+}
+
+# output "zone_id" {
+#   value = aws_route53_zone.main.zone_id
+# }
+
+# ACM 인증서 생성 (us-east-1 리전 지정 provider)
+module "acm_cert" {
+  source = "./modules/acm_certificate"
+  providers = { aws = aws.virginia }
+
+  domain_name = var.domain_name
+  subject_alternative_names = var.subject_alternative_names
+}
+
+# output "certificate_arn" {
+#   value = module.acm_cert.certificate_arn
+# }
+
+# ACM DNS 검증용 레코드 생성 
+module "acm_dns_validation" {
+  source = "./modules/acm_dns_validation"
+  providers = { aws = aws.virginia }
+
+  certificate_arn = module.acm_cert.certificate_arn
+  zone_id        = aws_route53_zone.main.zone_id
+  certificate_domain_validation_options = module.acm_cert.domain_validation_options
+
+  depends_on = [
+    aws_route53_zone.main,
+    module.acm_cert
+  ]
+}
+
+
+# Route53 레코드 (CloudFront 도메인)
+resource "aws_route53_record" "root" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = var.domain_name
+  type    = "A"
+  alias {
+    name                   = module.cloudfront_prod.domain_name
+    zone_id                = "Z2FDTNDATAQYW2" # CloudFront 고정 Hosted Zone ID
+    evaluate_target_health = false
+  }
+  depends_on = [
+    aws_route53_zone.main,
+    module.cloudfront_prod
+  ]
+}
+
+resource "aws_route53_record" "frontend" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "www.${var.domain_name}"
+  type    = "A"
+  alias {
+    name                   = module.cloudfront_prod.domain_name
+    zone_id                = "Z2FDTNDATAQYW2" # CloudFront 고정 Hosted Zone ID
+    evaluate_target_health = false
+  }
+  depends_on = [
+    aws_route53_zone.main,
+    module.cloudfront_prod
+  ]
+}
+
+# ==========================

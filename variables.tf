@@ -219,3 +219,14 @@ variable "common_tags" {
     Purpose     = "production"
   }
 } 
+
+variable "domain_name" {
+  description = "domain_name"
+  type        = string
+  default     = "goteego.store" 
+}
+variable "subject_alternative_names" {
+  type    = list(string)
+  default = [] 
+  description = "Optional list of Subject Alternative Names (SANs) for the ACM certificate"
+}
