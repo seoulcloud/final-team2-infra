@@ -33,6 +33,8 @@ module "vpc" {
 
   # Tags
   common_tags = var.common_tags
+  # eks node sg
+  eks_node_security_group = module.eks.node_group_security_group_id
 }
 
 # EKS Module
@@ -309,4 +311,24 @@ resource "aws_route53_record" "frontend" {
   ]
 }
 
-# ==========================
+# elasticache ==========================
+
+module "elasticache" {
+  source = "./modules/elasticache"
+  project_name        = var.project_name
+  environment         = var.environment
+  subnet_ids          = module.vpc.elasticache_private_subnets
+  security_group_ids  = [module.vpc.elasticache_sg_id]
+  node_type           = "cache.t3.micro"
+  num_cache_nodes     = 1
+  redis_auth_token    = var.redis_auth_token
+  common_tags         = var.common_tags
+  depends_on = [module.eks]
+}
+# redis_auth_parameter
+resource "aws_ssm_parameter" "redis_auth_token" {
+  name  = "/${var.project_name}/${var.environment}/redis_auth_token"
+  type  = "SecureString"  # 보안 문자열로 저장
+  value = var.redis_auth_token 
+  tags = var.common_tags
+}

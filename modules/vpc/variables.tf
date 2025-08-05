@@ -95,3 +95,7 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 } 
+variable "eks_node_security_group" {
+  description = "EKS node group security group ID to allow inbound in Elasticache SG"
+  type        = string
+}

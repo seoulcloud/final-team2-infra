@@ -230,3 +230,8 @@ variable "subject_alternative_names" {
   default = [] 
   description = "Optional list of Subject Alternative Names (SANs) for the ACM certificate"
 }
+variable "redis_auth_token" {
+  description = "Redis AUTH token (min 16 characters)"
+  type        = string
+  sensitive   = true
+}

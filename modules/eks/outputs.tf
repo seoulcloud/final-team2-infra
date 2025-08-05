@@ -141,3 +141,7 @@ output "addon_status" {
     }
   }
 } 
+output "node_group_security_group_id" {
+  description = "EKS Node Group security group ID"
+  value       = aws_security_group.node_group.id
+}

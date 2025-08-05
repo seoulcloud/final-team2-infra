@@ -125,3 +125,53 @@ resource "kubernetes_service_account" "postgres_sa" {
     }
   }
 }
+
+# Redis 전용 IRSA 역할 생성===============================
+resource "aws_iam_role" "redis_irsa" {
+  name = "redis-irsa-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = var.cluster_oidc_provider_arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "${replace(var.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:${var.namespace}:redis-sa"
+        }
+      }
+    }]
+  })
+}
+
+# Redis용 SSM 파라미터 접근 정책 (예: redis_auth_token)
+resource "aws_iam_role_policy" "redis_ssm_policy" {
+  name = "ssm-read-redis-auth-token"
+  role = aws_iam_role.redis_irsa.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
+        Resource = "arn:aws:ssm:ap-northeast-2:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/${var.environment}/redis_auth_token"  # 필요시 수정
+      }
+    ]
+  })
+}
+
+# Redis 전용 Kubernetes Service Account 생성
+resource "kubernetes_service_account" "redis_sa" {
+  metadata {
+    name      = "redis-sa"
+    namespace = var.namespace
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.redis_irsa.arn
+    }
+  }
+}
+
