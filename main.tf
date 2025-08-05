@@ -92,6 +92,7 @@ module "postgresql_server" {
   common_tags       = var.common_tags
 
   db_password       = var.db_password_postgresql
+  depends_on  = [module.eks]
 }
 
 module "mongodb_server" {
@@ -108,6 +109,7 @@ module "mongodb_server" {
   common_tags       = var.common_tags
 
   db_password         = var.db_password_mongodb 
+  depends_on  = [module.eks]
 }
 
 ## SSM Parameter 등록 ====== test
@@ -117,6 +119,7 @@ resource "aws_ssm_parameter" "db_password_postgresql" {
   type  = "SecureString"  # 암호화 저장
   value = var.db_password_postgresql
   tags  = var.common_tags
+  depends_on  = [module.postgresql_server]
 }
 
 resource "aws_ssm_parameter" "db_password_mongodb" {
@@ -124,6 +127,7 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
   type  = "SecureString"
   value = var.db_password_mongodb
   tags  = var.common_tags
+  depends_on  = [module.mongodb_server]
 }
 
 # Output important values
