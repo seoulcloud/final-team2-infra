@@ -149,13 +149,13 @@ variable "backup_retention_days" {
 variable "postgresql_ami_id" {
   description = "PostgreSQL 서버에 사용할 AMI ID"
   type        = string
-  default     = "ami-0abcd1234efgh5678" 
+  default     = "ami-0f8d552e06067b477" 
 }
 
 variable "mongodb_ami_id" {
   description = "MongoDB 서버에 사용할 AMI ID"
   type        = string
-  default     = "ami-0wxyz9876tsrq5432"
+  default     = "ami-0f8d552e06067b477"
 }
 
 variable "db_instance_type" {
