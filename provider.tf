@@ -3,7 +3,7 @@ terraform {
     organization = "goteego"
 
     workspaces {
-      name = "goteego" # goteego는 회사계정 Final-Team2(김재신)
+      name = "final-team2-infra" # goteego는 회사계정 Final-Team2(김재신)
     }
   }
 }
