@@ -73,6 +73,12 @@ variable "enable_ssm_access" {
   default     = true
 }
 
+variable "enable_node_group_limited_admin" {
+  description = "Enable limited admin access for EKS node group (for cert-manager installation)"
+  type        = bool
+  default     = false
+}
+
 # EKS Configuration (Production Scale)
 variable "eks_cluster_version" {
   description = "EKS cluster version"

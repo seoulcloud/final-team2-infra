@@ -72,6 +72,9 @@ module "eks" {
   # SSM Access
   enable_ssm_access = var.enable_ssm_access
 
+  # Node Group Limited Admin Access (for cert-manager installation)
+  enable_node_group_limited_admin = var.enable_node_group_limited_admin
+
   # Tags
   common_tags = var.common_tags
 }
