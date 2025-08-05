@@ -144,6 +144,31 @@ resource "aws_iam_role_policy" "node_group_ssm_custom" {
   })
 }
 
+# EKS Node Group Management Policy (cert-manager + ArgoCD 배포용)
+resource "aws_iam_role_policy" "node_group_management" {
+  count = var.enable_node_group_limited_admin ? 1 : 0
+  
+  name = "${var.project_name}-${var.environment}-eks-node-management"
+  role = aws_iam_role.node_group.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "eks:UpdateNodegroupConfig",
+          "eks:UpdateNodegroupVersion",
+          "ec2:RebootInstances",
+          "ec2:DescribeInstances",
+          "ec2:DescribeInstanceStatus"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # EBS CSI Driver IAM Policy
 resource "aws_iam_policy" "ebs_csi_driver" {
   name        = "${var.project_name}-${var.environment}-ebs-csi-driver-policy"
