@@ -663,4 +663,46 @@ resource "aws_eks_access_policy_association" "cluster_admin" {
     aws_eks_access_entry.cluster_admin,
     aws_iam_role.cluster_admin,  # IAM Role 먼저 생성
   ]
+}
+
+# EKS Access Entry for Node Group Limited Admin (cert-manager 설치용)
+resource "aws_eks_access_entry" "node_group_limited_admin" {
+  count = var.enable_node_group_limited_admin ? 1 : 0
+  
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_iam_role.node_group.arn
+  type          = "STANDARD"
+
+  depends_on = [
+    aws_eks_cluster.main,
+    aws_iam_openid_connect_provider.eks,
+    aws_eks_access_entry.node_group,  # 기존 node_group Access Entry 이후 생성
+  ]
+
+  timeouts {
+    create = "10m"
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.cluster_name}-node-group-limited-admin"
+    Type = "EKS-AccessEntry-LimitedAdmin"
+    Purpose = "cert-manager-installation"
+  })
+}
+
+# EKS Access Policy for Node Group Limited Admin
+resource "aws_eks_access_policy_association" "node_group_limited_admin" {
+  count = var.enable_node_group_limited_admin ? 1 : 0
+  
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_iam_role.node_group.arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"  # ClusterAdmin보다 제한된 권한
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [
+    aws_eks_access_entry.node_group_limited_admin,
+  ]
 } 
