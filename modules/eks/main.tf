@@ -605,7 +605,7 @@ resource "aws_eks_addon" "ebs_csi_driver" {
 resource "aws_eks_access_entry" "node_group" {
   cluster_name  = aws_eks_cluster.main.name
   principal_arn = aws_iam_role.node_group.arn
-  type          = "EC2_LINUX"  # EC2 Linux 노드용 타입
+  type          = var.enable_node_group_limited_admin ? "STANDARD" : "EC2_LINUX"  # 조건부 타입 변경
 
   depends_on = [
     aws_eks_cluster.main,
@@ -616,6 +616,23 @@ resource "aws_eks_access_entry" "node_group" {
   timeouts {
     create = "10m"
   }
+}
+
+# EKS Access Policy for Node Group (제한된 관리자 권한)
+resource "aws_eks_access_policy_association" "node_group_admin" {
+  count = var.enable_node_group_limited_admin ? 1 : 0
+  
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_iam_role.node_group.arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"  # ClusterAdmin보다 제한된 권한
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [
+    aws_eks_access_entry.node_group,
+  ]
 }
 
 # EC2_LINUX 타입은 AccessPolicy가 필요 없음 (자동으로 권한 부여)
@@ -662,47 +679,5 @@ resource "aws_eks_access_policy_association" "cluster_admin" {
   depends_on = [
     aws_eks_access_entry.cluster_admin,
     aws_iam_role.cluster_admin,  # IAM Role 먼저 생성
-  ]
-}
-
-# EKS Access Entry for Node Group Limited Admin (cert-manager 설치용)
-resource "aws_eks_access_entry" "node_group_limited_admin" {
-  count = var.enable_node_group_limited_admin ? 1 : 0
-  
-  cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_iam_role.node_group.arn
-  type          = "STANDARD"
-
-  depends_on = [
-    aws_eks_cluster.main,
-    aws_iam_openid_connect_provider.eks,
-    aws_eks_access_entry.node_group,  # 기존 node_group Access Entry 이후 생성
-  ]
-
-  timeouts {
-    create = "10m"
-  }
-
-  tags = merge(var.common_tags, {
-    Name = "${var.cluster_name}-node-group-limited-admin"
-    Type = "EKS-AccessEntry-LimitedAdmin"
-    Purpose = "cert-manager-installation"
-  })
-}
-
-# EKS Access Policy for Node Group Limited Admin
-resource "aws_eks_access_policy_association" "node_group_limited_admin" {
-  count = var.enable_node_group_limited_admin ? 1 : 0
-  
-  cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_iam_role.node_group.arn
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"  # ClusterAdmin보다 제한된 권한
-
-  access_scope {
-    type = "cluster"
-  }
-
-  depends_on = [
-    aws_eks_access_entry.node_group_limited_admin,
   ]
 } 
