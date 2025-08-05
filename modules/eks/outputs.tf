@@ -108,6 +108,13 @@ output "ssm_connection_guide" {
   } : null
 }
 
+output "ssm_parameter_read_policy_arn" {
+  value = aws_iam_policy.ssm_parameter_read.arn
+}
+output "cluster_oidc_provider_arn" {
+  description = "OIDC provider ARN for EKS cluster"
+  value       = aws_iam_openid_connect_provider.eks.arn
+}
 # Add-ons Information
 output "addon_status" {
   description = "Status of EKS add-ons"

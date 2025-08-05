@@ -145,6 +145,27 @@ variable "backup_retention_days" {
   default     = 30
 }
 
+# DB variables ==========
+variable "postgresql_ami_id" {
+  description = "PostgreSQL 서버에 사용할 AMI ID"
+  type        = string
+  default     = "ami-0abcd1234efgh5678" 
+}
+
+variable "mongodb_ami_id" {
+  description = "MongoDB 서버에 사용할 AMI ID"
+  type        = string
+  default     = "ami-0wxyz9876tsrq5432"
+}
+
+variable "db_instance_type" {
+  description = "DB 서버에 사용할 EC2 인스턴스 타입"
+  type        = string
+  default     = "t3.medium" # 필요에 따라 조정
+}
+
+# DB variables ==========
+
 # Database Configuration (for future use)
 variable "db_password_postgresql" {
   description = "PostgreSQL database password"
@@ -198,6 +219,7 @@ variable "common_tags" {
     Purpose     = "production"
   }
 } 
+
 variable "domain_name" {
   description = "domain_name"
   type        = string
