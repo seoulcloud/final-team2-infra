@@ -7,7 +7,7 @@ terraform {
     }
   }
 }
-# test
+# test 2
 # Configure AWS Provider for Team Account
 provider "aws" {
   region  = var.aws_region
