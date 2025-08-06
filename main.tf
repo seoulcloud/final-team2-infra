@@ -380,6 +380,8 @@ module "cert_manager_irsa" {
   oidc_provider_arn    = module.eks.cluster_oidc_provider_arn
   oidc_issuer_url      = module.eks.cluster_oidc_issuer_url
   hosted_zone_arn      = aws_route53_zone.main.arn
+  project_name = var.project_name
+  environment  = var.environment
 
   tags = var.common_tags
 
