@@ -112,11 +112,11 @@ resource "aws_iam_role_policy_attachment" "node_group_ssm_policy" {
   role       = aws_iam_role.node_group.name
 }
 
-# EKS 접근 권한을 노드 그룹에 연결
-resource "aws_iam_role_policy_attachment" "node_group_eks_access" {
-  policy_arn = aws_iam_policy.ssm_eks_access.arn
-  role       = aws_iam_role.node_group.name
-}
+# EKS 접근 권한을 노드 그룹에 연결 (제거)
+# resource "aws_iam_role_policy_attachment" "node_group_eks_access" {
+#   policy_arn = aws_iam_policy.ssm_eks_access.arn
+#   role       = aws_iam_role.node_group.name
+# }
 
 # Additional SSM permissions for EKS nodes
 resource "aws_iam_role_policy" "node_group_ssm_custom" {
@@ -144,30 +144,30 @@ resource "aws_iam_role_policy" "node_group_ssm_custom" {
   })
 }
 
-# EKS Node Group Management Policy (cert-manager + ArgoCD 배포용)
-resource "aws_iam_role_policy" "node_group_management" {
-  count = var.enable_node_group_limited_admin ? 1 : 0
-  
-  name = "${var.project_name}-${var.environment}-eks-node-management"
-  role = aws_iam_role.node_group.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "eks:UpdateNodegroupConfig",
-          "eks:UpdateNodegroupVersion",
-          "ec2:RebootInstances",
-          "ec2:DescribeInstances",
-          "ec2:DescribeInstanceStatus"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
+# EKS Node Group Management Policy (cert-manager + ArgoCD 배포용) - 제거
+# resource "aws_iam_role_policy" "node_group_management" {
+#   count = var.enable_node_group_limited_admin ? 1 : 0
+#   
+#   name = "${var.project_name}-${var.environment}-eks-node-management"
+#   role = aws_iam_role.node_group.id
+#
+#   policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [
+#       {
+#         Effect = "Allow"
+#         Action = [
+#           "eks:UpdateNodegroupConfig",
+#           "eks:UpdateNodegroupVersion",
+#           "ec2:RebootInstances",
+#           "ec2:DescribeInstances",
+#           "ec2:DescribeInstanceStatus"
+#         ]
+#         Resource = "*"
+#       }
+#     ]
+#   })
+# }
 
 # EBS CSI Driver IAM Policy
 resource "aws_iam_policy" "ebs_csi_driver" {
@@ -626,11 +626,11 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   })
 }
 
-# EKS Access Entry for Node Group IAM Role
+# EKS Access Entry for Node Group IAM Role (관리자 권한 제거)
 resource "aws_eks_access_entry" "node_group" {
   cluster_name  = aws_eks_cluster.main.name
   principal_arn = aws_iam_role.node_group.arn
-  type          = var.enable_node_group_limited_admin ? "STANDARD" : "EC2_LINUX"  # 조건부 타입 변경
+  type          = "EC2_LINUX"  # STANDARD 대신 EC2_LINUX 사용 (기본 권한만)
 
   depends_on = [
     aws_eks_cluster.main,
@@ -643,22 +643,22 @@ resource "aws_eks_access_entry" "node_group" {
   }
 }
 
-# EKS Access Policy for Node Group (제한된 관리자 권한)
-resource "aws_eks_access_policy_association" "node_group_admin" {
-  count = var.enable_node_group_limited_admin ? 1 : 0
-  
-  cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_iam_role.node_group.arn
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"  # ClusterAdmin보다 제한된 권한
-
-  access_scope {
-    type = "cluster"
-  }
-
-  depends_on = [
-    aws_eks_access_entry.node_group,
-  ]
-}
+# EKS Access Policy for Node Group (제한된 관리자 권한) - 제거
+# resource "aws_eks_access_policy_association" "node_group_admin" {
+#   count = var.enable_node_group_limited_admin ? 1 : 0
+#   
+#   cluster_name  = aws_eks_cluster.main.name
+#   principal_arn = aws_iam_role.node_group.arn
+#   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"  # ClusterAdmin보다 제한된 권한
+#
+#   access_scope {
+#     type = "cluster"
+#   }
+#
+#   depends_on = [
+#     aws_eks_access_entry.node_group,
+#   ]
+# }
 
 # EC2_LINUX 타입은 AccessPolicy가 필요 없음 (자동으로 권한 부여)
 # resource "aws_eks_access_policy_association" "node_group" {

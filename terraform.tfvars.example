@@ -14,6 +14,7 @@ vpc_cidr = "10.0.0.0/16"
 eks_private_subnets        = ["10.0.10.0/24", "10.0.11.0/24"]  # EKS-private-subnet-az1/az2
 postgresql_private_subnets = ["10.0.20.0/24", "10.0.21.0/24"]  # PostgreSQL-private-subnet-az1/az2
 mongodb_private_subnets    = ["10.0.30.0/24", "10.0.31.0/24"]  # MongoDB-private-subnet-az1/az2
+elasticache_private_subnets = ["10.0.40.0/24", "10.0.41.0/24"] # ElastiCache-private-subnet-az1/az2
 
 # SSM Configuration
 enable_ssm_endpoints = true
@@ -21,6 +22,9 @@ enable_ssm_access    = true
 
 # EKS Configuration (Production Scale)
 eks_cluster_version = "1.28"
+
+# EKS Security Configuration (보안 강화)
+enable_node_group_limited_admin = false  # 워커노드 관리자 권한 비활성화 (보안 강화)
 
 # EKS Node Groups (Production Scale)
 eks_node_groups = {
@@ -44,9 +48,29 @@ eks_node_groups = {
   }
 }
 
+# Domain Configuration (도메인 설정)
+domain_name = "example.com"  # 실제 도메인으로 변경 필요
+subject_alternative_names = [
+  "www.example.com",
+  "*.example.com"
+]
+
+# Database Configuration
+postgresql_ami_id = "ami-0c9c942bd7bf113a2"  # Amazon Linux 2 AMI
+mongodb_ami_id    = "ami-0c9c942bd7bf113a2"  # Amazon Linux 2 AMI
+db_instance_type  = "t3.micro"               # 테스트용, 프로덕션에서는 t3.small 이상 권장
+
 # Database Passwords (Set via environment variables - see scripts/set-env-vars.ps1)
 # db_password_postgresql = ""  # Will be set via TF_VAR_db_password_postgresql
 # db_password_mongodb    = ""  # Will be set via TF_VAR_db_password_mongodb
+
+# GitOps Configuration (ArgoCD 설정)
+github_username  = "your-github-username"    # GitHub 사용자명으로 변경
+gitops_repo_url  = ""                        # 비워두면 자동으로 GitHub URL 생성
+# 또는 직접 지정: "https://github.com/your-org/final-team2-manifest.git"
+
+# Monitoring and Performance
+enable_detailed_monitoring = true
 
 # Common Tags
 common_tags = {
