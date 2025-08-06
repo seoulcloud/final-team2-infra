@@ -243,7 +243,7 @@ variable "redis_auth_token" {
   sensitive   = true
 }
 
-
+# Monitoring variables ==========
 variable "alert_emails" {
   type        = list(string)
   description = "alert email list"

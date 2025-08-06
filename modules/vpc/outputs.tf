@@ -50,6 +50,11 @@ output "postgresql_private_subnet_cidrs" {
   value       = aws_subnet.postgresql_private[*].cidr_block
 }
 
+output "db_subnet_group_name" {
+  description = "The name of the DB subnet group"
+  value       = aws_db_subnet_group.this.name
+}
+
 # MongoDB Private Subnets
 output "mongodb_private_subnets" {
   description = "List of IDs of MongoDB private subnets"

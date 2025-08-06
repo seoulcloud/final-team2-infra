@@ -81,24 +81,55 @@ module "eks" {
   common_tags = var.common_tags
 }
 
-# DB Module
+# RDS PostgreSQL DB
+module "rds_postgresql" {
+  source = "./modules/rds_postgresql"
 
-module "postgresql_server" {
-  source             = "./modules/postgresql_server"
-  ami_id             = var.postgresql_ami_id
-  instance_type      = var.db_instance_type
-  subnet_id          = module.vpc.postgresql_private_subnets[0]
-  security_group_ids = [module.vpc.postgresql_sg_id]
-  # key_name          = var.key_name
-
+  # 프로젝트 기본 설정
   project_name = var.project_name
   environment  = var.environment
-  db_type      = "PostgreSQL"
-  common_tags  = var.common_tags
 
-  db_password = var.db_password_postgresql
-  depends_on  = [module.eks]
+  # 엔진 및 인스턴스 설정 (프리티어 기준)
+  engine_version          = "14.13"
+  instance_class          = "db.t3.micro"
+  allocated_storage       = 20
+  max_allocated_storage   = 20
+  storage_type            = "gp2"
+
+  # DB 정보
+  db_name      = var.project_name
+  db_username  = var.project_name
+  db_password  = var.db_password_postgresql
+  parameter_group_name = "default.postgres14"
+
+  # 가용성 및 백업
+  multi_az                = true
+  backup_retention_period = 3
+
+  # 네트워크 설정
+  vpc_security_group_ids = [module.vpc.postgresql_sg_id]
+  db_subnet_group_name   = module.vpc.db_subnet_group_name
+
+  # 태그
+  tags = var.common_tags
 }
+
+# module "rds_postgresql" {
+#   source            = "./modules/rds_postgresql"
+#   ami_id            = var.postgresql_ami_id
+#   instance_type     = var.db_instance_type
+#   subnet_id         = module.vpc.postgresql_private_subnets[0]
+#   security_group_ids = [module.vpc.postgresql_sg_id]
+#   # key_name          = var.key_name
+
+#   project_name      = var.project_name
+#   environment       = var.environment
+#   db_type           = "PostgreSQL"
+#   common_tags       = var.common_tags
+
+#   db_password       = var.db_password_postgresql
+#   depends_on  = [module.eks]
+# }
 
 module "mongodb_server" {
   source             = "./modules/mongodb_server"
@@ -120,11 +151,11 @@ module "mongodb_server" {
 ## SSM Parameter 등록 ====== test
 
 resource "aws_ssm_parameter" "db_password_postgresql" {
-  name       = "/${var.project_name}/${var.environment}/db_password_postgresql"
-  type       = "SecureString" # 암호화 저장
-  value      = var.db_password_postgresql
-  tags       = var.common_tags
-  depends_on = [module.postgresql_server]
+  name  = "/${var.project_name}/${var.environment}/db_password_postgresql"
+  type  = "SecureString"  # 암호화 저장
+  value = var.db_password_postgresql
+  tags  = var.common_tags
+  depends_on  = [module.rds_postgresql]
 }
 
 resource "aws_ssm_parameter" "db_password_mongodb" {

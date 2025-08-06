@@ -58,6 +58,16 @@ resource "aws_subnet" "postgresql_private" {
   })
 }
 
+# DB Subnet Group for RDS
+resource "aws_db_subnet_group" "this" {
+  name       = "${var.project_name}-${var.environment}-db-subnet-group"
+  subnet_ids = aws_subnet.postgresql_private[*].id  # 이미 있는 Subnet들
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-db-subnet-group"
+    Type = "DB-Subnet-Group"
+  })
+}
+
 # MongoDB Private Subnets (2 AZs)
 resource "aws_subnet" "mongodb_private" {
   count = length(var.mongodb_private_subnets)
