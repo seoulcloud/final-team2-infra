@@ -673,16 +673,15 @@ resource "aws_eks_access_entry" "node_group" {
 #   depends_on = [aws_eks_access_entry.node_group]
 # }
 
-# EKS Access Entry for Cluster Admin (cluster_admin role 사용)
+# EKS Access Entry for Cluster Admin (Terraform Cloud 실제 자격증명 사용)
 resource "aws_eks_access_entry" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_iam_role.cluster_admin.arn  # cluster_admin role 사용
+  principal_arn = data.aws_caller_identity.current.arn  # Terraform Cloud 실제 자격증명
   type          = "STANDARD"
 
   depends_on = [
     aws_eks_cluster.main,
-    aws_iam_openid_connect_provider.eks,  # OIDC Provider 생성 후 AccessEntry 생성
-    aws_iam_role.cluster_admin,  # IAM Role 먼저 생성
+    aws_iam_openid_connect_provider.eks  # OIDC Provider 생성 후 AccessEntry 생성
   ]
 
   # EKS 클러스터가 완전히 준비될 때까지 대기 (클러스터 생성 9분 소요)
@@ -694,7 +693,7 @@ resource "aws_eks_access_entry" "cluster_admin" {
 # EKS Access Policy for Cluster Admin (system:masters group access)
 resource "aws_eks_access_policy_association" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_iam_role.cluster_admin.arn  # cluster_admin role 사용
+  principal_arn = data.aws_caller_identity.current.arn  # Terraform Cloud 실제 자격증명
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"  # 올바른 정책 ARN
 
   access_scope {
@@ -702,7 +701,6 @@ resource "aws_eks_access_policy_association" "cluster_admin" {
   }
 
   depends_on = [
-    aws_eks_access_entry.cluster_admin,
-    aws_iam_role.cluster_admin,  # IAM Role 먼저 생성
+    aws_eks_access_entry.cluster_admin
   ]
 } 
