@@ -235,3 +235,8 @@ variable "redis_auth_token" {
   type        = string
   sensitive   = true
 }
+
+variable "alert_emails" {
+  type        = list(string)
+  description = "List of emails for alert notifications"
+}
