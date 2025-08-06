@@ -237,6 +237,20 @@ variable "subject_alternative_names" {
   description = "Optional list of Subject Alternative Names (SANs) for the ACM certificate"
 }
 
+variable "redis_auth_token" {
+  description = "Redis AUTH token (min 16 characters)"
+  type        = string
+  sensitive   = true
+}
+
+
+variable "alert_emails" {
+  type        = list(string)
+  description = "alert email list"
+  default     = [] # 혹은 null로 해도 무방
+}
+
+
 # GitOps Configuration
 variable "gitops_repo_url" {
   description = "GitOps repository URL for ArgoCD application manifests"
