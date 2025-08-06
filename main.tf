@@ -55,11 +55,11 @@ module "eks" {
   # Network Configuration
   internet_cidr = var.internet_cidr
 
-  # Cluster Endpoint Configuration
+  # Cluster Endpoint Configuration (배포 후 콘솔에서 private로 변경)
   cluster_endpoint_config = {
     private_access      = true
-    public_access       = false
-    public_access_cidrs = ["0.0.0.0/0"] # 안써도 있긴있어야함
+    public_access       = true   # Terraform Cloud 배포를 위해 임시 활성화
+    public_access_cidrs = ["0.0.0.0/0"] # 배포 완료 후 콘솔에서 private로 변경
   }
 
   # Node Group Configuration (Production Scale)
@@ -444,52 +444,6 @@ resource "helm_release" "argocd" {
 
 # EKS 클러스터와 Helm 차트는 Terraform으로 자동 배포됩니다
 # GitOps 설정만 수동으로 진행하면 됩니다
-
-# Note: ClusterIssuer와 ArgoCD Application은 Terraform 배포 후 수동으로 설정
-# 아래 명령어들을 EKS 클러스터 배포 완료 후 실행하세요:
-
-# 1. ClusterIssuer 생성:
-# aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name}
-# kubectl apply -f - <<EOF
-# apiVersion: cert-manager.io/v1
-# kind: ClusterIssuer
-# metadata:
-#   name: letsencrypt-prod
-# spec:
-#   acme:
-#     server: https://acme-v02.api.letsencrypt.org/directory
-#     email: admin@${var.domain_name}
-#     privateKeySecretRef:
-#       name: letsencrypt-prod
-#     solvers:
-#     - dns01:
-#         route53:
-#           region: ${var.aws_region}
-# EOF
-
-# 2. ArgoCD App-of-Apps 생성:
-# kubectl apply -f - <<EOF
-# apiVersion: argoproj.io/v1alpha1
-# kind: Application
-# metadata:
-#   name: app-of-apps
-#   namespace: argocd
-# spec:
-#   project: default
-#   source:
-#     repoURL: ${var.gitops_repo_url != "" ? var.gitops_repo_url : "https://github.com/${var.github_username}/final-team2-manifest.git"}
-#     targetRevision: HEAD
-#     path: final-team2-manifest/overlays/${var.environment}
-#   destination:
-#     server: https://kubernetes.default.svc
-#     namespace: argocd
-#   syncPolicy:
-#     automated:
-#       prune: true
-#       selfHeal: true
-#     syncOptions:
-#     - CreateNamespace=true
-# EOF
 
 # Output ArgoCD information
 output "argocd_server_url" {
