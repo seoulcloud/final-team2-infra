@@ -1,127 +1,137 @@
-data "aws_iam_policy_document" "assume_role" {
-  statement {
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-    effect  = "Allow"
-    principals {
-      type        = "Federated"
-      identifiers = [var.cluster_oidc_provider_arn]
-    }
-    condition {
-      test     = "StringEquals"
-      variable = "${replace(var.cluster_oidc_issuer_url, "https://", "")}:sub"
-      values   = ["system:serviceaccount:${var.namespace}:${var.name}"]
-    }
-  }
-}
+# IRSA Module - IAM Role for Service Account
 
-resource "aws_iam_role" "this" {
-  name               = "${var.name}-irsa-role"
-  assume_role_policy = data.aws_iam_policy_document.assume_role.json
-  tags = {
-    Name = "${var.name}-irsa-role"
-  }
-}
+# Data source for current AWS caller identity
+data "aws_caller_identity" "current" {}
 
-resource "aws_iam_role_policy_attachment" "this" {
-  for_each = toset(var.policy_arns)
-  role     = aws_iam_role.this.name
-  policy_arn = each.value
-}
+# Data source for current AWS region
+data "aws_region" "current" {}
 
-resource "kubernetes_service_account" "this" {
-  metadata {
-    name      = var.name
-    namespace = var.namespace
-    annotations = {
-      "eks.amazonaws.com/role-arn" = aws_iam_role.this.arn
-    }
-  }
-} 
-# DB =============================================
-
-# DB SSM 접근 전용 Role
-resource "aws_iam_role" "db_irsa" {
-  name = "db-irsa-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Federated = var.cluster_oidc_provider_arn
-      }
-      Action = "sts:AssumeRoleWithWebIdentity"
-      Condition = {
-        StringEquals = {
-          "${replace(var.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:${var.namespace}:db-reader-sa"
-        }
-      }
-    }]
-  })
-}
-
-# DB 전용 정책 붙이기
-resource "aws_iam_role_policy" "ssm_read_policy" {
-  name = "ssm-read-db-password"
-  role = aws_iam_role.db_irsa.id
+# IAM Policy for cert-manager (Route53 DNS challenge)
+resource "aws_iam_policy" "cert_manager_route53" {
+  count = var.service_name == "cert-manager" ? 1 : 0
+  
+  name        = "${var.cluster_name}-cert-manager-route53"
+  description = "Policy for cert-manager to manage Route53 records"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
-        Resource = "arn:aws:ssm:ap-northeast-2:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/${var.environment}/db_password_mongodb"  # 수정필요함
+        Effect = "Allow"
+        Action = [
+          "route53:GetChange",
+          "route53:ListHostedZones",
+          "route53:ListHostedZonesByName"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "route53:ChangeResourceRecordSets",
+          "route53:GetHostedZone",
+          "route53:ListResourceRecordSets"
+        ]
+        Resource = var.hosted_zone_arn != null ? var.hosted_zone_arn : "*"
       }
     ]
   })
+
+  tags = var.tags
 }
 
-data "aws_caller_identity" "current" {}
+# IAM Policy for ArgoCD (if needed)
+resource "aws_iam_policy" "argocd" {
+  count = var.service_name == "argocd" ? 1 : 0
+  
+  name        = "${var.cluster_name}-argocd"
+  description = "Policy for ArgoCD service account"
 
-# DB 전용 SA 생성 (DB 종류 별로 필요한 권한이 다르기 때문에.. 별로도 생성 필요)
-resource "kubernetes_service_account" "db_reader_sa" {
-  metadata {
-    name      = "db-reader-sa"
-    namespace = var.namespace
-    annotations = {
-      "eks.amazonaws.com/role-arn" = aws_iam_role.db_irsa.arn
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "eks:DescribeCluster",
+          "eks:ListClusters"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+# IAM Trust Policy for IRSA
+data "aws_iam_policy_document" "trust_policy" {
+  statement {
+    effect = "Allow"
+    
+    principals {
+      type        = "Federated"
+      identifiers = [var.oidc_provider_arn]
+    }
+    
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(var.oidc_issuer_url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:${var.namespace}:${var.service_account_name}"]
+    }
+    
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(var.oidc_issuer_url, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
     }
   }
 }
 
-resource "aws_iam_role" "postgres_irsa" {
-  name = "eks-irsa-postgres"
+# IAM Role for Service Account
+resource "aws_iam_role" "service_account" {
+  name               = "${var.cluster_name}-${var.service_name}-irsa"
+  assume_role_policy = data.aws_iam_policy_document.trust_policy.json
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Federated = aws_iam_openid_connect_provider.eks.arn
-      }
-      Action = "sts:AssumeRoleWithWebIdentity"
-      Condition = {
-        StringEquals = {
-          "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:your-namespace:postgres-sa"
-        }
-      }
-    }]
+  tags = merge(var.tags, {
+    Name        = "${var.cluster_name}-${var.service_name}-irsa"
+    ServiceName = var.service_name
+    Type        = "IRSA-Role"
   })
 }
 
-resource "aws_iam_role_policy_attachment" "postgres_ssm_policy" {
-  role       = aws_iam_role.postgres_irsa.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess" # 또는 커스텀
+# Attach policy to role based on service type
+resource "aws_iam_role_policy_attachment" "cert_manager" {
+  count = var.service_name == "cert-manager" ? 1 : 0
+  
+  role       = aws_iam_role.service_account.name
+  policy_arn = aws_iam_policy.cert_manager_route53[0].arn
 }
 
-resource "kubernetes_service_account" "postgres_sa" {
-  metadata {
-    name      = "postgres-sa"
-    namespace = "your-namespace"
+resource "aws_iam_role_policy_attachment" "argocd" {
+  count = var.service_name == "argocd" ? 1 : 0
+  
+  role       = aws_iam_role.service_account.name
+  policy_arn = aws_iam_policy.argocd[0].arn
+}
 
+# Kubernetes Service Account
+resource "kubernetes_service_account" "service_account" {
+  metadata {
+    name      = var.service_account_name
+    namespace = var.namespace
+    
     annotations = {
-      "eks.amazonaws.com/role-arn" = aws_iam_role.postgres_irsa.arn
+      "eks.amazonaws.com/role-arn" = aws_iam_role.service_account.arn
+    }
+    
+    labels = {
+      "app.kubernetes.io/name"       = var.service_name
+      "app.kubernetes.io/managed-by" = "terraform"
     }
   }
+
+  automount_service_account_token = true
 }
