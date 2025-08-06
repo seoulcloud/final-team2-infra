@@ -236,7 +236,9 @@ variable "redis_auth_token" {
   sensitive   = true
 }
 
+
 variable "alert_emails" {
   type        = list(string)
-  description = "List of emails for alert notifications"
+  description = "alert email list"
+  default     = [] # 혹은 null로 해도 무방
 }
