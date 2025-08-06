@@ -66,6 +66,11 @@ output "mongodb_private_subnet_cidrs" {
   value       = aws_subnet.mongodb_private[*].cidr_block
 }
 
+output "docdb_subnet_group_name" {
+  description = "Subnet group name for DocumentDB"
+  value       = aws_docdb_subnet_group.this.name
+}
+
 # Elasticache Private Subnets
 output "elasticache_private_subnets" {
   description = "List of IDs of Elasticache private subnets"
