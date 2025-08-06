@@ -36,7 +36,7 @@ variable "redis_auth_token" {
   sensitive   = true
 }
 
-variable "security_group_ids" {
-  description = "List of security group IDs to assign to Elasticache"
-  type        = list(string)
-}
+# variable "security_group_ids" {
+#   description = "List of security group IDs to assign to Elasticache"
+#   type        = list(string)
+# }

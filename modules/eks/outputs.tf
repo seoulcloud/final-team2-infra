@@ -140,8 +140,4 @@ output "addon_status" {
       arn          = aws_eks_addon.ebs_csi_driver.arn
     }
   }
-} 
-output "node_group_security_group_id" {
-  description = "EKS Node Group security group ID"
-  value       = aws_security_group.node_group.id
 }
