@@ -131,3 +131,6 @@ output "availability_zones" {
   description = "List of availability zones used"
   value       = local.azs
 } 
+output "elasticache_sg_id" {
+  value = aws_security_group.elasticache_sg.id
+}

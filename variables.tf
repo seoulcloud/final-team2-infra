@@ -155,7 +155,7 @@ variable "backup_retention_days" {
 variable "postgresql_ami_id" {
   description = "PostgreSQL 서버에 사용할 AMI ID"
   type        = string
-  default     = "ami-0f8d552e06067b477" 
+  default     = "ami-0f8d552e06067b477"
 }
 
 variable "mongodb_ami_id" {
@@ -230,15 +230,42 @@ variable "common_tags" {
     Account     = "teamf2"
     Purpose     = "production"
   }
-} 
+}
 
 variable "domain_name" {
   description = "domain_name"
   type        = string
-  default     = "goteego.store" 
+  default     = "goteego.store"
 }
 variable "subject_alternative_names" {
-  type    = list(string)
-  default = [] 
+  type        = list(string)
+  default     = []
   description = "Optional list of Subject Alternative Names (SANs) for the ACM certificate"
+}
+
+variable "redis_auth_token" {
+  description = "Redis AUTH token (min 16 characters)"
+  type        = string
+  sensitive   = true
+}
+
+
+variable "alert_emails" {
+  type        = list(string)
+  description = "alert email list"
+  default     = [] # 혹은 null로 해도 무방
+}
+
+
+# GitOps Configuration
+variable "gitops_repo_url" {
+  description = "GitOps repository URL for ArgoCD application manifests"
+  type        = string
+  default     = ""
+}
+
+variable "github_username" {
+  description = "GitHub username for GitOps repository"
+  type        = string
+  default     = ""
 }

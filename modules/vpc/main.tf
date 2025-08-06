@@ -324,7 +324,7 @@ resource "aws_security_group" "postgresql" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
   }
 
   tags = merge(var.common_tags, {
@@ -352,11 +352,35 @@ resource "aws_security_group" "mongodb" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
   }
 
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-mongodb-sg"
     Type = "MongoDB-SG"
   })
+}
+
+
+# Security Group for Elasticache
+resource "aws_security_group" "elasticache_sg" {
+  name        = "${var.project_name}-${var.environment}-elasticache-sg"
+  description = "Security group for ElastiCache Redis"
+  vpc_id      = aws_vpc.main.id
+
+  # Redis 포트(6379) (접속 대상은 EKS 노드 또는 특정 SG)
+  ingress {
+    description     = "Allow Redis inbound from EKS nodes"
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [var.eks_node_security_group]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.vpc_cidr]
+  }
+  tags = var.common_tags
 }

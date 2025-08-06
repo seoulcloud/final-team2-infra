@@ -140,4 +140,4 @@ output "addon_status" {
       arn          = aws_eks_addon.ebs_csi_driver.arn
     }
   }
-} 
+}
