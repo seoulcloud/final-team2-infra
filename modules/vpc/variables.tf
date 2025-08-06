@@ -99,3 +99,7 @@ variable "eks_node_security_group" {
   description = "EKS node group security group ID to allow inbound in Elasticache SG"
   type        = string
 }
+variable "eks_node_security_group" {
+  type        = string
+  description = "The security group ID for EKS node group"
+}

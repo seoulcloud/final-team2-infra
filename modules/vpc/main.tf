@@ -364,7 +364,7 @@ resource "aws_security_group" "elasticache_sg" {
     from_port       = 6379
     to_port         = 6379
     protocol        = "tcp"
-    security_groups = [var.eks_node_groups]
+    security_groups = [var.eks_node_security_group]
   }
   egress {
     from_port   = 0
