@@ -83,6 +83,17 @@ resource "aws_subnet" "mongodb_private" {
   })
 }
 
+# Subnet Group for DocumentDB
+resource "aws_docdb_subnet_group" "this" {
+  name       = "${var.project_name}-${var.environment}-docdb-subnet-group"
+  subnet_ids = aws_subnet.mongodb_private[*].id  # MongoDB용 프라이빗 서브넷 사용
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-docdb-subnet-group"
+    Type = "DocumentDB-Subnet-Group"
+  })
+}
+
 # Elasticache Private Subnets (2 AZs)
 resource "aws_subnet" "elasticache_private" {
   count = length(var.elasticache_private_subnets)
@@ -97,8 +108,6 @@ resource "aws_subnet" "elasticache_private" {
     Database = "Elasticache"
   })
 }
-
-
 
 # Elastic IPs for NAT Gateways
 resource "aws_eip" "nat" {

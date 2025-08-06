@@ -81,7 +81,7 @@ module "eks" {
   common_tags = var.common_tags
 }
 
-# RDS PostgreSQL DB
+# RDS PostgreSQL DB Module
 module "rds_postgresql" {
   source = "./modules/rds_postgresql"
 
@@ -107,45 +107,38 @@ module "rds_postgresql" {
   backup_retention_period = 3
 
   # 네트워크 설정
-  vpc_security_group_ids = [module.vpc.postgresql_sg_id]
   db_subnet_group_name   = module.vpc.db_subnet_group_name
+  vpc_security_group_ids = [module.vpc.postgresql_sg_id]
 
   # 태그
   tags = var.common_tags
 }
 
-# module "rds_postgresql" {
-#   source            = "./modules/rds_postgresql"
-#   ami_id            = var.postgresql_ami_id
-#   instance_type     = var.db_instance_type
-#   subnet_id         = module.vpc.postgresql_private_subnets[0]
-#   security_group_ids = [module.vpc.postgresql_sg_id]
-#   # key_name          = var.key_name
+# DocumentDB Cluster Module
+module "documentdb" {
+  source = "./modules/documentdb"
 
-#   project_name      = var.project_name
-#   environment       = var.environment
-#   db_type           = "PostgreSQL"
-#   common_tags       = var.common_tags
-
-#   db_password       = var.db_password_postgresql
-#   depends_on  = [module.eks]
-# }
-
-module "mongodb_server" {
-  source             = "./modules/mongodb_server"
-  ami_id             = var.mongodb_ami_id
-  instance_type      = var.db_instance_type
-  subnet_id          = module.vpc.mongodb_private_subnets[0]
-  security_group_ids = [module.vpc.mongodb_sg_id]
-  # key_name          = var.key_name
-
+  # 프로젝트 기본 설정
   project_name = var.project_name
   environment  = var.environment
-  db_type      = "MongoDB"
-  common_tags  = var.common_tags
 
+  # DB 계정 정보
+  db_username = var.project_name
   db_password = var.db_password_mongodb
-  depends_on  = [module.eks]
+
+  # 인스턴스 설정
+  instance_class = "db.t3.medium" # DocumentDB 최소 사양
+  instance_count = 1
+
+  # 백업 설정
+  backup_retention_period = 3
+
+  # 네트워크 설정
+  db_subnet_group_name   = module.vpc.docdb_subnet_group_name
+  vpc_security_group_ids = [module.vpc.mongodb_sg_id]
+
+  # 태그
+  tags = var.common_tags
 }
 
 ## SSM Parameter 등록 ====== test
@@ -163,7 +156,7 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
   type       = "SecureString"
   value      = var.db_password_mongodb
   tags       = var.common_tags
-  depends_on = [module.mongodb_server]
+  depends_on = [module.documentdb]
 }
 
 # Output important values
