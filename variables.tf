@@ -211,12 +211,6 @@ variable "production_config" {
   }
 }
 
-# Monitoring variables ==========
-variable "alert_emails" {
-  description = "List of email addresses for SNS alerts"
-  type        = list(string)
-}
-
 # Common Tags
 variable "common_tags" {
   description = "Common tags for all resources"
@@ -249,7 +243,7 @@ variable "redis_auth_token" {
   sensitive   = true
 }
 
-
+# Monitoring variables ==========
 variable "alert_emails" {
   type        = list(string)
   description = "alert email list"
