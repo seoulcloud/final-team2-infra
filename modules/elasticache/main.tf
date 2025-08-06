@@ -1,7 +1,6 @@
-
 # Redis용 파라미터 그룹 생성
 resource "aws_elasticache_parameter_group" "redis7" {
-  name        = "${var.project_name}.redis7"
+  name        = "${var.project_name}-redis7"  # '.' 대신 '-' 사용
   family      = "redis7"
   description = "Parameter group for Redis 7 for ${var.project_name}"
 }
