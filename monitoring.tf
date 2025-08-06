@@ -1,21 +1,21 @@
-# PostgreSQL CPU 모니터링 (EC2 기반)
-module "monitoring_postgresql_cpu" {
+# RDS CPU 모니터링
+module "monitoring_rds_cpu" {
   source             = "./modules/monitoring"
-  sns_topic_name     = "${var.project_name}-db-alerts"
+  sns_topic_name     = "${var.project_name}-rds-alerts"
   email_addresses    = var.alert_emails
 
-  alarm_name          = "${var.project_name}-RDPostgreSQL-CPU-HIGH"
+  alarm_name          = "${var.project_name}-RDS-CPU-HIGH"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "CPUUtilization"
-  namespace           = "AWS/EC2"
+  namespace           = "AWS/RDS"
   period              = 300
   statistic           = "Average"
   threshold           = 80
-  action_description  = "PostgreSQL 서버 CPU 사용률이 임계치를 초과했습니다. 쿼리 성능을 점검하거나 리소스를 확장하세요."
+  action_description  = "RDS PostgreSQL CPU 사용률이 임계치를 초과했습니다. 쿼리 성능을 점검하거나 리소스를 확장하세요."
 
   dimensions = {
-    InstanceId = module.postgresql_server.InstanceId # RDS 인스턴스 ID
+    DBInstanceIdentifier = module.rds_postgresql.db_instance_id # RDS 인스턴스 ID
   }
 
   tags = var.common_tags
