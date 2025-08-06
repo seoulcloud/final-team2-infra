@@ -673,10 +673,10 @@ resource "aws_eks_access_entry" "node_group" {
 #   depends_on = [aws_eks_access_entry.node_group]
 # }
 
-# EKS Access Entry for Cluster Admin (Terraform Cloud 자격증명 사용)
+# EKS Access Entry for Cluster Admin (cluster_admin role 사용)
 resource "aws_eks_access_entry" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"  # AWS 계정 root 사용자
+  principal_arn = aws_iam_role.cluster_admin.arn  # cluster_admin role 사용
   type          = "STANDARD"
 
   depends_on = [
@@ -694,7 +694,7 @@ resource "aws_eks_access_entry" "cluster_admin" {
 # EKS Access Policy for Cluster Admin (system:masters group access)
 resource "aws_eks_access_policy_association" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"  # AWS 계정 root 사용자
+  principal_arn = aws_iam_role.cluster_admin.arn  # cluster_admin role 사용
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"  # 올바른 정책 ARN
 
   access_scope {
