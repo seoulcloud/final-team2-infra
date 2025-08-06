@@ -400,44 +400,6 @@ resource "helm_release" "cert_manager" {
   ]
 }
 
-# ClusterIssuer for Let's Encrypt (Route53 DNS challenge)
-resource "kubernetes_manifest" "letsencrypt_issuer" {
-  manifest = {
-    apiVersion = "cert-manager.io/v1"
-    kind       = "ClusterIssuer"
-
-    metadata = {
-      name = "letsencrypt-prod"
-    }
-
-    spec = {
-      acme = {
-        server = "https://acme-v02.api.letsencrypt.org/directory"
-        email  = "admin@${var.domain_name}"
-
-        privateKeySecretRef = {
-          name = "letsencrypt-prod"
-        }
-
-        solvers = [
-          {
-            dns01 = {
-              route53 = {
-                region = var.aws_region
-              }
-            }
-          }
-        ]
-      }
-    }
-  }
-
-  depends_on = [
-    helm_release.cert_manager,
-    module.cert_manager_irsa
-  ]
-}
-
 # ArgoCD Helm chart
 resource "helm_release" "argocd" {
   name       = "argocd"
@@ -480,48 +442,54 @@ resource "helm_release" "argocd" {
   ]
 }
 
-# ArgoCD Application for GitOps (manifest 리포지토리 연결)
-resource "kubernetes_manifest" "argocd_app_of_apps" {
-  manifest = {
-    apiVersion = "argoproj.io/v1alpha1"
-    kind       = "Application"
+# EKS 클러스터와 Helm 차트는 Terraform으로 자동 배포됩니다
+# GitOps 설정만 수동으로 진행하면 됩니다
 
-    metadata = {
-      name      = "app-of-apps"
-      namespace = kubernetes_namespace.argocd.metadata[0].name
-    }
+# Note: ClusterIssuer와 ArgoCD Application은 Terraform 배포 후 수동으로 설정
+# 아래 명령어들을 EKS 클러스터 배포 완료 후 실행하세요:
 
-    spec = {
-      project = "default"
+# 1. ClusterIssuer 생성:
+# aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name}
+# kubectl apply -f - <<EOF
+# apiVersion: cert-manager.io/v1
+# kind: ClusterIssuer
+# metadata:
+#   name: letsencrypt-prod
+# spec:
+#   acme:
+#     server: https://acme-v02.api.letsencrypt.org/directory
+#     email: admin@${var.domain_name}
+#     privateKeySecretRef:
+#       name: letsencrypt-prod
+#     solvers:
+#     - dns01:
+#         route53:
+#           region: ${var.aws_region}
+# EOF
 
-      source = {
-        repoURL        = var.gitops_repo_url != "" ? var.gitops_repo_url : "https://github.com/${var.github_username}/final-team2-manifest.git"
-        targetRevision = "HEAD"
-        path           = "final-team2-manifest/overlays/${var.environment}"
-      }
-
-      destination = {
-        server    = "https://kubernetes.default.svc"
-        namespace = kubernetes_namespace.argocd.metadata[0].name
-      }
-
-      syncPolicy = {
-        automated = {
-          prune    = true
-          selfHeal = true
-        }
-
-        syncOptions = [
-          "CreateNamespace=true"
-        ]
-      }
-    }
-  }
-
-  depends_on = [
-    helm_release.argocd
-  ]
-}
+# 2. ArgoCD App-of-Apps 생성:
+# kubectl apply -f - <<EOF
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#   name: app-of-apps
+#   namespace: argocd
+# spec:
+#   project: default
+#   source:
+#     repoURL: ${var.gitops_repo_url != "" ? var.gitops_repo_url : "https://github.com/${var.github_username}/final-team2-manifest.git"}
+#     targetRevision: HEAD
+#     path: final-team2-manifest/overlays/${var.environment}
+#   destination:
+#     server: https://kubernetes.default.svc
+#     namespace: argocd
+#   syncPolicy:
+#     automated:
+#       prune: true
+#       selfHeal: true
+#     syncOptions:
+#     - CreateNamespace=true
+# EOF
 
 # Output ArgoCD information
 output "argocd_server_url" {

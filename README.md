@@ -49,6 +49,86 @@ final-team2-infra/
 3. **PowerShell** (Windows)
 4. **Terraform Cloud 계정** (선택사항)
 
+### 완전 자동화 배포 방법
+
+#### **Terraform Cloud 환경 (권장)**
+```bash
+# 1단계: Terraform Cloud에서 자동 배포
+terraform plan   # 모든 인프라 + Helm 차트 계획
+terraform apply  # EKS + cert-manager + ArgoCD 자동 배포
+
+# 2단계: GitOps 설정 (수동 - 1회만)
+# EKS 클러스터 접근 설정
+aws eks update-kubeconfig --region ap-northeast-2 --name <cluster-name>
+
+# ClusterIssuer 생성
+kubectl apply -f - <<EOF
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@your-domain.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - dns01:
+        route53:
+          region: ap-northeast-2
+EOF
+
+# ArgoCD App-of-Apps 생성  
+kubectl apply -f - <<EOF
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-of-apps
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-username/final-team2-manifest.git
+    targetRevision: HEAD
+    path: final-team2-manifest/overlays/team
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+EOF
+```
+
+#### **로컬 환경에서 단계별 배포** (디버깅용)
+```bash
+# 1단계: 인프라 먼저 배포
+terraform apply -target=module.eks -target=module.vpc
+
+# 2단계: Helm 차트 배포  
+terraform apply -target=helm_release.cert_manager -target=helm_release.argocd
+
+# 3단계: 나머지 리소스
+terraform apply  # 모든 리소스
+```
+
+### 배포 후 확인
+
+```bash
+# ArgoCD 접속 정보 확인
+kubectl get svc -n argocd argocd-server
+
+# ClusterIssuer 상태 확인
+kubectl get clusterissuer
+
+# ArgoCD Application 확인
+kubectl get application -n argocd
+```
+
 ### AWS CLI 프로필 설정
 
 ```powershell
