@@ -30,6 +30,7 @@ resource "aws_db_instance" "this" {
 
   # 모니터링 (CloudWatch Enhanced Monitoring)
   monitoring_interval = 60                              # 60초 간격으로 메트릭 수집
+  monitoring_role_arn = aws_iam_role.rds_enhanced_monitoring.arn
 
   # 네트워크 설정
   vpc_security_group_ids = var.vpc_security_group_ids   # 연결할 SG 리스트
@@ -40,4 +41,28 @@ resource "aws_db_instance" "this" {
     Name = "${var.project_name}-${var.environment}-postgresql-rds"
     Type = "rds-postgresql"
   })
+}
+
+resource "aws_iam_role" "rds_enhanced_monitoring" {
+  name = "${var.project_name}-${var.environment}-rds-enhanced-monitoring-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "monitoring.rds.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy_attachment" "rds_enhanced_monitoring" {
+  role       = aws_iam_role.rds_enhanced_monitoring.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }
