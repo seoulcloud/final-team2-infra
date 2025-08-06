@@ -112,6 +112,12 @@ resource "aws_iam_role_policy_attachment" "node_group_ssm_policy" {
   role       = aws_iam_role.node_group.name
 }
 
+# EKS 접근 권한을 노드 그룹에 연결 (제거)
+# resource "aws_iam_role_policy_attachment" "node_group_eks_access" {
+#   policy_arn = aws_iam_policy.ssm_eks_access.arn
+#   role       = aws_iam_role.node_group.name
+# }
+
 # Additional SSM permissions for EKS nodes
 resource "aws_iam_role_policy" "node_group_ssm_custom" {
   count = var.enable_ssm_access ? 1 : 0
@@ -137,6 +143,31 @@ resource "aws_iam_role_policy" "node_group_ssm_custom" {
     ]
   })
 }
+
+# EKS Node Group Management Policy (cert-manager + ArgoCD 배포용) - 제거
+# resource "aws_iam_role_policy" "node_group_management" {
+#   count = var.enable_node_group_limited_admin ? 1 : 0
+#   
+#   name = "${var.project_name}-${var.environment}-eks-node-management"
+#   role = aws_iam_role.node_group.id
+#
+#   policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [
+#       {
+#         Effect = "Allow"
+#         Action = [
+#           "eks:UpdateNodegroupConfig",
+#           "eks:UpdateNodegroupVersion",
+#           "ec2:RebootInstances",
+#           "ec2:DescribeInstances",
+#           "ec2:DescribeInstanceStatus"
+#         ]
+#         Resource = "*"
+#       }
+#     ]
+#   })
+# }
 
 # EBS CSI Driver IAM Policy
 resource "aws_iam_policy" "ebs_csi_driver" {
@@ -186,6 +217,13 @@ resource "aws_iam_role" "cluster_admin" {
         Principal = {
           AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
         }
+      },
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
       }
     ]
   })
@@ -193,6 +231,43 @@ resource "aws_iam_role" "cluster_admin" {
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-eks-cluster-admin-role"
     Type = "EKS-Cluster-Admin-IAM-Role"
+  })
+}
+
+# SSM을 통한 EKS 접근을 위한 IAM 정책
+resource "aws_iam_policy" "ssm_eks_access" {
+  name        = "${var.project_name}-${var.environment}-ssm-eks-access-policy"
+  description = "Policy for SSM to access EKS cluster"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "eks:DescribeCluster",
+          "eks:ListClusters",
+          "eks:AccessKubernetesApi",
+          "eks:DescribeNodegroup",
+          "eks:ListNodegroups",
+          "eks:DescribeAddon",
+          "eks:ListAddons"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sts:GetCallerIdentity"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-ssm-eks-access-policy"
+    Type = "IAM-Policy"
   })
 }
 
@@ -551,11 +626,11 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   })
 }
 
-# EKS Access Entry for Node Group IAM Role
+# EKS Access Entry for Node Group IAM Role (관리자 권한 제거)
 resource "aws_eks_access_entry" "node_group" {
   cluster_name  = aws_eks_cluster.main.name
   principal_arn = aws_iam_role.node_group.arn
-  type          = "EC2_LINUX"  # EC2 Linux 노드용 타입
+  type          = "EC2_LINUX"  # STANDARD 대신 EC2_LINUX 사용 (기본 권한만)
 
   depends_on = [
     aws_eks_cluster.main,
@@ -567,6 +642,23 @@ resource "aws_eks_access_entry" "node_group" {
     create = "10m"
   }
 }
+
+# EKS Access Policy for Node Group (제한된 관리자 권한) - 제거
+# resource "aws_eks_access_policy_association" "node_group_admin" {
+#   count = var.enable_node_group_limited_admin ? 1 : 0
+#   
+#   cluster_name  = aws_eks_cluster.main.name
+#   principal_arn = aws_iam_role.node_group.arn
+#   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"  # ClusterAdmin보다 제한된 권한
+#
+#   access_scope {
+#     type = "cluster"
+#   }
+#
+#   depends_on = [
+#     aws_eks_access_entry.node_group,
+#   ]
+# }
 
 # EC2_LINUX 타입은 AccessPolicy가 필요 없음 (자동으로 권한 부여)
 # resource "aws_eks_access_policy_association" "node_group" {
@@ -581,16 +673,15 @@ resource "aws_eks_access_entry" "node_group" {
 #   depends_on = [aws_eks_access_entry.node_group]
 # }
 
-# EKS Access Entry for Cluster Admin (Terraform Cloud 자격증명 사용)
+# EKS Access Entry for Cluster Admin (Terraform Cloud 실제 자격증명 사용)
 resource "aws_eks_access_entry" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"  # AWS 계정 root 사용자
+  principal_arn = data.aws_caller_identity.current.arn  # Terraform Cloud 실제 자격증명
   type          = "STANDARD"
 
   depends_on = [
     aws_eks_cluster.main,
-    aws_iam_openid_connect_provider.eks,  # OIDC Provider 생성 후 AccessEntry 생성
-    aws_iam_role.cluster_admin,  # IAM Role 먼저 생성
+    aws_iam_openid_connect_provider.eks  # OIDC Provider 생성 후 AccessEntry 생성
   ]
 
   # EKS 클러스터가 완전히 준비될 때까지 대기 (클러스터 생성 9분 소요)
@@ -602,7 +693,7 @@ resource "aws_eks_access_entry" "cluster_admin" {
 # EKS Access Policy for Cluster Admin (system:masters group access)
 resource "aws_eks_access_policy_association" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"  # AWS 계정 root 사용자
+  principal_arn = data.aws_caller_identity.current.arn  # Terraform Cloud 실제 자격증명
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"  # 올바른 정책 ARN
 
   access_scope {
@@ -610,7 +701,6 @@ resource "aws_eks_access_policy_association" "cluster_admin" {
   }
 
   depends_on = [
-    aws_eks_access_entry.cluster_admin,
-    aws_iam_role.cluster_admin,  # IAM Role 먼저 생성
+    aws_eks_access_entry.cluster_admin
   ]
 } 

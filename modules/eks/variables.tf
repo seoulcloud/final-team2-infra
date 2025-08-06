@@ -140,6 +140,12 @@ variable "enable_ssm_access" {
   default     = true
 }
 
+variable "enable_node_group_limited_admin" {
+  description = "Enable limited admin access for EKS node group (for cert-manager installation)"
+  type        = bool
+  default     = false
+}
+
 # Common Tags
 variable "common_tags" {
   description = "Common tags for all resources"
