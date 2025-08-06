@@ -425,15 +425,10 @@ resource "helm_release" "argocd" {
     value = "true"
   }
 
-  # RBAC 설정
+  # RBAC 설정 (기본값을 사용하여 에러 방지)
   set {
     name  = "configs.rbac.policy\\.default"
     value = "role:readonly"
-  }
-
-  set {
-    name  = "configs.rbac.policy\\.csv"
-    value = "g, system:cluster-admins, role:admin"
   }
 
   depends_on = [
