@@ -336,7 +336,7 @@ resource "aws_ssm_parameter" "redis_auth_token" {
   value = var.redis_auth_token 
   tags = var.common_tags
 
-
+}
 # ========================================
 # Kubernetes Applications (cert-manager & ArgoCD)
 # ========================================

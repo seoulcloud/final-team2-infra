@@ -45,3 +45,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+
+# Basic Configuration
+variable "environment" {
+  description = "Environment name"
+  type        = string
+}
+
+variable "project_name" {
+  description = "Project name"
+  type        = string
+}

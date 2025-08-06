@@ -145,17 +145,20 @@ resource "aws_iam_role" "redis_irsa" {
     Statement = [{
       Effect = "Allow"
       Principal = {
-        Federated = var.cluster_oidc_provider_arn
+        Federated = var.oidc_provider_arn        
+        
       }
       Action = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = {
-          "${replace(var.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:${var.namespace}:redis-sa"
+          "${replace(var.oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:${var.namespace}:redis-sa"
         }
       }
     }]
   })
 }
+
+
 
 # Redis용 SSM 파라미터 접근 정책 (예: redis_auth_token)
 resource "aws_iam_role_policy" "redis_ssm_policy" {
