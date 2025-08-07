@@ -320,8 +320,18 @@ resource "helm_release" "aws_load_balancer_controller" {
   }
 
   set {
-    name  = "defaultTags"
-    value = "Environment=team,Project=goteego,kubernetes.io/cluster/goteego-team-cluster=owned"
+    name  = "defaultTags.Environment"
+    value = "team"
+  }
+
+  set {
+    name  = "defaultTags.Project"
+    value = "goteego"
+  }
+
+  set {
+    name  = "defaultTags.kubernetes\\.io/cluster/goteego-team-cluster"
+    value = "owned"
   }
 
   # 보안 설정
