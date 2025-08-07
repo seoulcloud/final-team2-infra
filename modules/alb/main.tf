@@ -83,26 +83,10 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
       {
         Effect = "Allow"
         Action = [
-          "ec2:CreateSecurityGroup"
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "ec2:CreateAction" = "CreateSecurityGroup"
-          }
-        }
-      },
-      {
-        Effect = "Allow"
-        Action = [
+          "ec2:CreateSecurityGroup",
           "ec2:CreateTags"
         ]
-        Resource = "arn:aws:ec2:*:*:security-group/*"
-        Condition = {
-          StringEquals = {
-            "ec2:CreateAction" = "CreateSecurityGroup"
-          }
-        }
+        Resource = "*"
       },
       {
         Effect = "Allow"
