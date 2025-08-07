@@ -257,7 +257,9 @@ module "cloudfront_prod" {
 
 module "web_hosting" {
   source       = "./modules/web_hosting"
-  bucket_name  = module.s3_frontend_prod.bucket_name
+  bucket_id    = module.s3_frontend_prod.bucket_id
+  bucket_arn   = module.s3_frontend_prod.bucket_arn
+  # bucket_name  = module.s3_frontend_prod.bucket_name
   environment  = var.environment
   project_name = var.project_name
 }
