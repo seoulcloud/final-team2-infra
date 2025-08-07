@@ -83,26 +83,10 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
       {
         Effect = "Allow"
         Action = [
-          "ec2:CreateSecurityGroup"
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "ec2:CreateAction" = "CreateSecurityGroup"
-          }
-        }
-      },
-      {
-        Effect = "Allow"
-        Action = [
+          "ec2:CreateSecurityGroup",
           "ec2:CreateTags"
         ]
-        Resource = "arn:aws:ec2:*:*:security-group/*"
-        Condition = {
-          StringEquals = {
-            "ec2:CreateAction" = "CreateSecurityGroup"
-          }
-        }
+        Resource = "*"
       },
       {
         Effect = "Allow"
@@ -292,6 +276,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   chart      = "aws-load-balancer-controller"
   version    = "1.6.1"
   namespace  = "kube-system"
+  timeout    = 900  # 15분으로 타임아웃 증가
 
   set {
     name  = "clusterName"
@@ -319,12 +304,18 @@ resource "helm_release" "aws_load_balancer_controller" {
   }
 
   set {
-    name  = "defaultTags"
-    value = jsonencode({
-      "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-      "Project"                                   = var.project_name
-      "Environment"                               = var.environment
-    })
+    name  = "defaultTags.Environment"
+    value = "team"
+  }
+
+  set {
+    name  = "defaultTags.Project"
+    value = "goteego"
+  }
+
+  set {
+    name  = "defaultTags.kubernetes\\.io/cluster/goteego-team-cluster"
+    value = "owned"
   }
 
   # 보안 설정
@@ -343,7 +334,51 @@ resource "helm_release" "aws_load_balancer_controller" {
     value = "1000"
   }
 
-  # 리소스 제한
+
+
+  # 로깅 설정
+  set {
+    name  = "logLevel"
+    value = "info"
+  }
+
+  # 레플리카 수 조정
+  set {
+    name  = "replicaCount"
+    value = "1"
+  }
+
+  # Webhook 설정 강화
+  set {
+    name  = "webhook.port"
+    value = "9443"
+  }
+
+  set {
+    name  = "webhook.timeoutSeconds"
+    value = "30"
+  }
+
+  # Webhook 서비스 설정
+  set {
+    name  = "webhook.service.type"
+    value = "ClusterIP"
+  }
+
+  # Pod 안정성 및 webhook 포트 노출
+  set {
+    name  = "containerPort"
+    value = "9443"
+  }
+
+  set {
+    name  = "webhook.enabled"
+    value = "true"
+  }
+
+  # Pod 안정성 설정 (제거 - 불필요한 설정)
+
+  # 리소스 요청 증가 (webhook 안정성)
   set {
     name  = "resources.requests.cpu"
     value = "100m"
@@ -364,13 +399,9 @@ resource "helm_release" "aws_load_balancer_controller" {
     value = "512Mi"
   }
 
-  # 로깅 설정
-  set {
-    name  = "logLevel"
-    value = "info"
-  }
-
   depends_on = [
     module.aws_load_balancer_controller_irsa
   ]
+
+
 } 
