@@ -321,11 +321,7 @@ resource "helm_release" "aws_load_balancer_controller" {
 
   set {
     name  = "defaultTags"
-    value = jsonencode({
-      "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-      "Project"                                   = var.project_name
-      "Environment"                               = var.environment
-    })
+    value = "Environment=team,Project=goteego,kubernetes.io/cluster/goteego-team-cluster=owned"
   }
 
   # 보안 설정
