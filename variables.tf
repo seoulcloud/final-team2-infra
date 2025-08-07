@@ -99,7 +99,7 @@ variable "eks_node_groups" {
   }))
   default = {
     "general" = {
-      instance_types = ["t3.small"]
+      instance_types = ["t3.large"]  # ALB Controller 사용을 위해 업그레이드
       min_size       = 1
       max_size       = 2
       desired_size   = 1
@@ -108,7 +108,7 @@ variable "eks_node_groups" {
       capacity_type  = "SPOT"
     },
     "compute" = {
-      instance_types = ["t3.small"]
+      instance_types = ["t3.large"]  # ALB Controller 사용을 위해 업그레이드
       min_size       = 1
       max_size       = 2
       desired_size   = 1

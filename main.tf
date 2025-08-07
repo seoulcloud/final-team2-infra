@@ -186,10 +186,9 @@ output "ssm_session_manager_url" {
 # OAC 생성
 module "cloudfront_oac" {
   source      = "./modules/cloudfront_oac"
-  name        = "myapp-oac"
-  description = "OAC for myapp CloudFront"
+  name        = "${var.project_name}-${var.environment}-oac"
+  description = "OAC for CloudFront"
 }
-
 
 # output "oac_id" {
 #   value = module.cloudfront_oac.oac_id
@@ -201,18 +200,18 @@ module "cloudfront_oac" {
 module "s3_frontend_prod" {
   source      = "./modules/s3_frontend"
   prefix      = "prod"
-  bucket_name = "myapp-frontend"
-  oac_id      = module.cloudfront_oac.oac_id
-  # cloudfront_distribution_arn = module.cloudfront_prod.aws_cloudfront_distribution_arn
+  bucket_name = "${var.project_name}-frontend"
+  # oac_id      = module.cloudfront_oac.oac_id
+  cloudfront_distribution_arn = module.cloudfront_prod.aws_cloudfront_distribution_arn
 }
 
-# s3_backend (prod 환경)
-module "s3_backend_prod" {
-  source         = "./modules/s3_backend"
-  prefix         = "prod"
-  bucket_name    = "myapp-backend"
-  lifecycle_days = 30
-}
+# s3_backend (prod 환경)  -> 백엔드에서 s3 사용 안함
+# module "s3_backend_prod" {
+#   source         = "./modules/s3_backend"
+#   prefix         = "prod"
+#   bucket_name    = "${var.project_name}-backend"
+#   lifecycle_days = 30
+# }
 
 # output "frontend_bucket_name" {
 #   value = module.s3_frontend_prod.bucket_name
@@ -258,7 +257,9 @@ module "cloudfront_prod" {
 
 module "web_hosting" {
   source       = "./modules/web_hosting"
-  bucket_name  = module.s3_frontend_prod.bucket_name
+  bucket_id    = module.s3_frontend_prod.bucket_id
+  bucket_arn   = module.s3_frontend_prod.bucket_arn
+  # bucket_name  = module.s3_frontend_prod.bucket_name
   environment  = var.environment
   project_name = var.project_name
 }
@@ -424,21 +425,53 @@ resource "kubernetes_namespace" "argocd" {
 module "cert_manager_irsa" {
   source = "./modules/irsa"
 
-  cluster_name         = module.eks.cluster_name
-  service_name         = "cert-manager"
-  service_account_name = "cert-manager"
-  namespace            = kubernetes_namespace.cert_manager.metadata[0].name
-  oidc_provider_arn    = module.eks.cluster_oidc_provider_arn
-  oidc_issuer_url      = module.eks.cluster_oidc_issuer_url
-  hosted_zone_arn      = aws_route53_zone.main.arn
-  project_name = var.project_name
-  environment  = var.environment
-
-  tags = var.common_tags
+  name      = "cert-manager"
+  namespace = kubernetes_namespace.cert_manager.metadata[0].name
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+  project_name              = var.project_name
+  environment               = var.environment
+  hosted_zone_arn           = aws_route53_zone.main.arn
+  common_tags               = var.common_tags
 
   depends_on = [
     module.eks,
     kubernetes_namespace.cert_manager
+  ]
+}
+
+# ALB Module
+module "alb" {
+  source = "./modules/alb"
+
+  # Basic Configuration
+  project_name = var.project_name
+  environment  = var.environment
+  vpc_id       = module.vpc.vpc_id
+  cluster_name = module.eks.cluster_name
+
+  # Network Configuration
+  public_subnets = module.vpc.public_subnets
+
+  # OIDC Configuration
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+
+  # Security Configuration
+  node_group_security_group_id = module.eks.node_group_security_group_id
+
+  # Domain Configuration
+  domain_name     = var.domain_name
+  zone_id         = aws_route53_zone.main.zone_id
+  certificate_arn = module.acm_cert.certificate_arn
+
+  # Tags
+  common_tags = var.common_tags
+
+  depends_on = [
+    module.eks,
+    module.vpc,
+    module.acm_cert
   ]
 }
 
@@ -476,6 +509,13 @@ resource "helm_release" "cert_manager" {
   ]
 }
 
+# ALB Controller 배포 후 대기 시간
+resource "time_sleep" "wait_for_alb_controller" {
+  depends_on = [module.alb]
+  
+  create_duration = "900s"  # 900초 대기 (ALB Controller 완전 초기화 대기)
+}
+
 # ArgoCD Helm chart
 resource "helm_release" "argocd" {
   name       = "argocd"
@@ -483,6 +523,7 @@ resource "helm_release" "argocd" {
   chart      = "argo-cd"
   version    = "5.51.6"
   namespace  = kubernetes_namespace.argocd.metadata[0].name
+  timeout    = 900  # 15분으로 타임아웃 증가
 
   # ArgoCD Server 설정
   set {
@@ -507,9 +548,37 @@ resource "helm_release" "argocd" {
     value = "role:readonly"
   }
 
+  # 리소스 설정 (타임아웃 방지)
+  set {
+    name  = "server.resources.requests.cpu"
+    value = "100m"
+  }
+
+  set {
+    name  = "server.resources.requests.memory"
+    value = "128Mi"
+  }
+
+  set {
+    name  = "server.resources.limits.cpu"
+    value = "200m"
+  }
+
+  set {
+    name  = "server.resources.limits.memory"
+    value = "256Mi"
+  }
+
+  # 레플리카 수 조정
+  set {
+    name  = "server.replicaCount"
+    value = "1"
+  }
+
   depends_on = [
     module.eks,
-    kubernetes_namespace.argocd
+    kubernetes_namespace.argocd,
+    time_sleep.wait_for_alb_controller
   ]
 }
 
@@ -531,5 +600,30 @@ output "argocd_admin_password" {
 output "cert_manager_status" {
   description = "cert-manager installation status"
   value       = "cert-manager installed with Route53 DNS challenge support"
+}
 
+# ALB Module Outputs
+output "alb_controller_role_arn" {
+  description = "AWS Load Balancer Controller IAM Role ARN"
+  value       = module.alb.aws_load_balancer_controller_role_arn
+}
+
+output "alb_security_group_id" {
+  description = "ALB Security Group ID"
+  value       = module.alb.alb_security_group_id
+}
+
+output "alb_controller_status" {
+  description = "AWS Load Balancer Controller installation status"
+  value       = "AWS Load Balancer Controller installed with IRSA support"
+}
+
+# Frontend Deploy
+module "github_oidc_roles" {
+  source = "./modules/github_oidc_roles"
+
+  github_org               = "CLD-3rd"
+  github_repo              = "final-team2-frontend"
+  s3_bucket_name           = module.s3_frontend_prod.bucket_name
+  cloudfront_distribution_id = module.cloudfront_prod.distribution_id
 }

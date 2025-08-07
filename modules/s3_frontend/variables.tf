@@ -5,9 +5,9 @@ variable "prefix" {
   description = "환경 구분용 prefix (ex: dev, prod)"
 }
 
-variable "oac_id" {
+variable "cloudfront_distribution_arn" {
+  description = "The ARN of the CloudFront distribution"
   type        = string
-  description = "CloudFront OAC ID"
 }
 
 variable "bucket_name" {
