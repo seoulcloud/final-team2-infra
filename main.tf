@@ -202,7 +202,7 @@ module "s3_frontend_prod" {
   prefix      = "prod"
   bucket_name = "${var.project_name}-frontend"
   # oac_id      = module.cloudfront_oac.oac_id
-  cloudfront_distribution_arn = module.cloudfront.aws_cloudfront_distribution_arn
+  cloudfront_distribution_arn = module.cloudfront_prod.aws_cloudfront_distribution_arn
 }
 
 # s3_backend (prod 환경)  -> 백엔드에서 s3 사용 안함
