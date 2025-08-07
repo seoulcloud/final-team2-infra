@@ -1,5 +1,5 @@
 resource "aws_route53_zone" "main" {
-  name = "goteego.store"
+  name = var.domain_name
 }
 
 

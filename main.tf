@@ -186,10 +186,9 @@ output "ssm_session_manager_url" {
 # OAC 생성
 module "cloudfront_oac" {
   source      = "./modules/cloudfront_oac"
-  name        = "myapp-oac"
-  description = "OAC for myapp CloudFront"
+  name        = "${var.project_name}-${var.environment}-oac"
+  description = "OAC for CloudFront"
 }
-
 
 # output "oac_id" {
 #   value = module.cloudfront_oac.oac_id
@@ -201,18 +200,18 @@ module "cloudfront_oac" {
 module "s3_frontend_prod" {
   source      = "./modules/s3_frontend"
   prefix      = "prod"
-  bucket_name = "myapp-frontend"
-  oac_id      = module.cloudfront_oac.oac_id
-  # cloudfront_distribution_arn = module.cloudfront_prod.aws_cloudfront_distribution_arn
+  bucket_name = "${var.project_name}-frontend"
+  # oac_id      = module.cloudfront_oac.oac_id
+  cloudfront_distribution_arn = module.cloudfront.aws_cloudfront_distribution_arn
 }
 
-# s3_backend (prod 환경)
-module "s3_backend_prod" {
-  source         = "./modules/s3_backend"
-  prefix         = "prod"
-  bucket_name    = "myapp-backend"
-  lifecycle_days = 30
-}
+# s3_backend (prod 환경)  -> 백엔드에서 s3 사용 안함
+# module "s3_backend_prod" {
+#   source         = "./modules/s3_backend"
+#   prefix         = "prod"
+#   bucket_name    = "${var.project_name}-backend"
+#   lifecycle_days = 30
+# }
 
 # output "frontend_bucket_name" {
 #   value = module.s3_frontend_prod.bucket_name
@@ -258,7 +257,9 @@ module "cloudfront_prod" {
 
 module "web_hosting" {
   source       = "./modules/web_hosting"
-  bucket_name  = module.s3_frontend_prod.bucket_name
+  bucket_id    = module.s3_frontend_prod.bucket_id
+  bucket_arn   = module.s3_frontend_prod.bucket_arn
+  # bucket_name  = module.s3_frontend_prod.bucket_name
   environment  = var.environment
   project_name = var.project_name
 }
