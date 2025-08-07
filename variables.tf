@@ -244,12 +244,19 @@ variable "redis_auth_token" {
 }
 
 # Monitoring variables ==========
+## Alert Emails =========
 variable "alert_emails" {
   type        = list(string)
   description = "alert email list"
   default     = [] # 혹은 null로 해도 무방
 }
 
+## Grafana admin password ==========
+variable "grafana_admin_password" {
+  description = "Grafana admin 비밀번호"
+  type        = string
+  sensitive   = true
+}
 
 # GitOps Configuration
 variable "gitops_repo_url" {

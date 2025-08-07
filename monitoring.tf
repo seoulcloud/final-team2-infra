@@ -21,6 +21,21 @@ module "monitoring_rds_cpu" {
   tags = var.common_tags
 }
 
+module "prometheus" {
+  source             = "./modules/monitoring/prometheus"
+  namespace          = "monitoring"
+  chart_version      = "56.6.2"
+  depends_on_module  = module.eks
+}
+
+module "grafana" {
+  source                = "./modules/grafana"
+  namespace             = "monitoring"
+  chart_version         = "7.3.9"
+  depends_on_module     = module.prometheus
+  grafana_admin_password = var.grafana_admin_password
+}
+
 # # EKS CPU 모니터링
 # module "monitoring_eks_cpu" {
 #   source             = "./modules/monitoring"
