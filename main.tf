@@ -397,21 +397,53 @@ resource "kubernetes_namespace" "argocd" {
 module "cert_manager_irsa" {
   source = "./modules/irsa"
 
-  cluster_name         = module.eks.cluster_name
-  service_name         = "cert-manager"
-  service_account_name = "cert-manager"
-  namespace            = kubernetes_namespace.cert_manager.metadata[0].name
-  oidc_provider_arn    = module.eks.cluster_oidc_provider_arn
-  oidc_issuer_url      = module.eks.cluster_oidc_issuer_url
-  hosted_zone_arn      = aws_route53_zone.main.arn
-  project_name = var.project_name
-  environment  = var.environment
-
-  tags = var.common_tags
+  name      = "cert-manager"
+  namespace = kubernetes_namespace.cert_manager.metadata[0].name
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+  project_name              = var.project_name
+  environment               = var.environment
+  hosted_zone_arn           = aws_route53_zone.main.arn
+  common_tags               = var.common_tags
 
   depends_on = [
     module.eks,
     kubernetes_namespace.cert_manager
+  ]
+}
+
+# ALB Module
+module "alb" {
+  source = "./modules/alb"
+
+  # Basic Configuration
+  project_name = var.project_name
+  environment  = var.environment
+  vpc_id       = module.vpc.vpc_id
+  cluster_name = module.eks.cluster_name
+
+  # Network Configuration
+  public_subnets = module.vpc.public_subnets
+
+  # OIDC Configuration
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+
+  # Security Configuration
+  node_group_security_group_id = module.eks.node_group_security_group_id
+
+  # Domain Configuration
+  domain_name     = var.domain_name
+  zone_id         = aws_route53_zone.main.zone_id
+  certificate_arn = module.acm_cert.certificate_arn
+
+  # Tags
+  common_tags = var.common_tags
+
+  depends_on = [
+    module.eks,
+    module.vpc,
+    module.acm_cert
   ]
 }
 
@@ -504,5 +536,20 @@ output "argocd_admin_password" {
 output "cert_manager_status" {
   description = "cert-manager installation status"
   value       = "cert-manager installed with Route53 DNS challenge support"
+}
 
+# ALB Module Outputs
+output "alb_controller_role_arn" {
+  description = "AWS Load Balancer Controller IAM Role ARN"
+  value       = module.alb.aws_load_balancer_controller_role_arn
+}
+
+output "alb_security_group_id" {
+  description = "ALB Security Group ID"
+  value       = module.alb.alb_security_group_id
+}
+
+output "alb_controller_status" {
+  description = "AWS Load Balancer Controller installation status"
+  value       = "AWS Load Balancer Controller installed with IRSA support"
 }
