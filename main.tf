@@ -485,7 +485,7 @@ resource "helm_release" "cert_manager" {
 resource "time_sleep" "wait_for_alb_controller" {
   depends_on = [module.alb]
   
-  create_duration = "600s"  # 600초 대기 (ALB Controller 완전 초기화 대기)
+  create_duration = "900s"  # 900초 대기 (ALB Controller 완전 초기화 대기)
 }
 
 # ArgoCD Helm chart
@@ -495,6 +495,7 @@ resource "helm_release" "argocd" {
   chart      = "argo-cd"
   version    = "5.51.6"
   namespace  = kubernetes_namespace.argocd.metadata[0].name
+  timeout    = 900  # 15분으로 타임아웃 증가
 
   # ArgoCD Server 설정
   set {
@@ -517,6 +518,33 @@ resource "helm_release" "argocd" {
   set {
     name  = "configs.rbac.policy\\.default"
     value = "role:readonly"
+  }
+
+  # 리소스 설정 (타임아웃 방지)
+  set {
+    name  = "server.resources.requests.cpu"
+    value = "100m"
+  }
+
+  set {
+    name  = "server.resources.requests.memory"
+    value = "128Mi"
+  }
+
+  set {
+    name  = "server.resources.limits.cpu"
+    value = "200m"
+  }
+
+  set {
+    name  = "server.resources.limits.memory"
+    value = "256Mi"
+  }
+
+  # 레플리카 수 조정
+  set {
+    name  = "server.replicaCount"
+    value = "1"
   }
 
   depends_on = [
