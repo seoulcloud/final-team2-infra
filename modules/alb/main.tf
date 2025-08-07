@@ -292,7 +292,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   chart      = "aws-load-balancer-controller"
   version    = "1.6.1"
   namespace  = "kube-system"
-  timeout    = 600  # 10분으로 타임아웃 증가
+  timeout    = 900  # 15분으로 타임아웃 증가
 
   set {
     name  = "clusterName"
@@ -344,26 +344,7 @@ resource "helm_release" "aws_load_balancer_controller" {
     value = "1000"
   }
 
-  # 리소스 제한 (더 낮게 설정)
-  set {
-    name  = "resources.requests.cpu"
-    value = "50m"
-  }
 
-  set {
-    name  = "resources.requests.memory"
-    value = "64Mi"
-  }
-
-  set {
-    name  = "resources.limits.cpu"
-    value = "200m"
-  }
-
-  set {
-    name  = "resources.limits.memory"
-    value = "256Mi"
-  }
 
   # 로깅 설정
   set {
@@ -377,7 +358,64 @@ resource "helm_release" "aws_load_balancer_controller" {
     value = "1"
   }
 
+  # Webhook 설정 강화
+  set {
+    name  = "webhook.port"
+    value = "9443"
+  }
+
+  set {
+    name  = "webhook.timeoutSeconds"
+    value = "30"
+  }
+
+  # Webhook 서비스 설정
+  set {
+    name  = "webhook.service.type"
+    value = "ClusterIP"
+  }
+
+  # Pod 안정성 및 webhook 포트 노출
+  set {
+    name  = "containerPort"
+    value = "9443"
+  }
+
+  set {
+    name  = "webhook.enabled"
+    value = "true"
+  }
+
+  # Pod 안정성 설정
+  set {
+    name  = "podAnnotations.checksum/config"
+    value = "true"
+  }
+
+  # 리소스 요청 증가 (webhook 안정성)
+  set {
+    name  = "resources.requests.cpu"
+    value = "100m"
+  }
+
+  set {
+    name  = "resources.requests.memory"
+    value = "128Mi"
+  }
+
+  set {
+    name  = "resources.limits.cpu"
+    value = "500m"
+  }
+
+  set {
+    name  = "resources.limits.memory"
+    value = "512Mi"
+  }
+
   depends_on = [
     module.aws_load_balancer_controller_irsa
   ]
+
+
 } 

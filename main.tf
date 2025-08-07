@@ -485,7 +485,7 @@ resource "helm_release" "cert_manager" {
 resource "time_sleep" "wait_for_alb_controller" {
   depends_on = [module.alb]
   
-  create_duration = "60s"  # 60초 대기
+  create_duration = "600s"  # 600초 대기 (ALB Controller 완전 초기화 대기)
 }
 
 # ArgoCD Helm chart
