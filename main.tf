@@ -201,6 +201,7 @@ module "s3_frontend_prod" {
   source      = "./modules/s3_frontend"
   prefix      = "prod"
   bucket_name = "${var.project_name}-frontend"
+  cloudfront_distribution_arn = module.cloudfront_prod.distribution_arn
 }
 
 # s3_backend (prod 환경)  -> 백엔드에서 s3 사용 안함

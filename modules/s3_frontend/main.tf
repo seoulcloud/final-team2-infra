@@ -25,7 +25,7 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
         Resource = "${aws_s3_bucket.frontend.arn}/*"
         Condition = {
           StringEquals = {
-            "AWS:SourceArn" = module.cloudfront_prod.distribution_arn
+            "AWS:SourceArn" = var.cloudfront_distribution_arn
           }
         }
       }
