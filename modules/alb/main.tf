@@ -292,6 +292,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   chart      = "aws-load-balancer-controller"
   version    = "1.6.1"
   namespace  = "kube-system"
+  timeout    = 600  # 10분으로 타임아웃 증가
 
   set {
     name  = "clusterName"
@@ -343,31 +344,37 @@ resource "helm_release" "aws_load_balancer_controller" {
     value = "1000"
   }
 
-  # 리소스 제한
+  # 리소스 제한 (더 낮게 설정)
   set {
     name  = "resources.requests.cpu"
-    value = "100m"
+    value = "50m"
   }
 
   set {
     name  = "resources.requests.memory"
-    value = "128Mi"
+    value = "64Mi"
   }
 
   set {
     name  = "resources.limits.cpu"
-    value = "500m"
+    value = "200m"
   }
 
   set {
     name  = "resources.limits.memory"
-    value = "512Mi"
+    value = "256Mi"
   }
 
   # 로깅 설정
   set {
     name  = "logLevel"
     value = "info"
+  }
+
+  # 레플리카 수 조정
+  set {
+    name  = "replicaCount"
+    value = "1"
   }
 
   depends_on = [
