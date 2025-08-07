@@ -31,8 +31,7 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
       }
     ]
   })
-  depends_on = [aws_s3_bucket_public_access_block.allow_public, module.s3_frontend_prod,
-    module.cloudfront_prod]
+  depends_on = [aws_s3_bucket_public_access_block.allow_public]
 }
 
 resource "aws_s3_bucket_public_access_block" "allow_public" {
