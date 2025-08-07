@@ -25,13 +25,14 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
         Resource = "${aws_s3_bucket.frontend.arn}/*"
         Condition = {
           StringEquals = {
-            "AWS:SourceArn" = "${var.cloudfront_distribution_arn}"
+            "AWS:SourceArn" = module.cloudfront_prod.distribution_arn
           }
         }
       }
     ]
   })
-  depends_on = [aws_s3_bucket_public_access_block.allow_public]
+  depends_on = [aws_s3_bucket_public_access_block.allow_public, module.s3_frontend_prod,
+    module.cloudfront_prod]
 }
 
 resource "aws_s3_bucket_public_access_block" "allow_public" {
