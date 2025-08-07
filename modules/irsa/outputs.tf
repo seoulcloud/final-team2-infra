@@ -12,10 +12,26 @@ output "iam_role_name" {
 
 output "service_account_name" {
   description = "Name of the Kubernetes service account"
-  value       = kubernetes_service_account.service_account.metadata[0].name
+  value       = var.name
 }
 
 output "service_account_namespace" {
   description = "Namespace of the Kubernetes service account"
-  value       = kubernetes_service_account.service_account.metadata[0].namespace
+  value       = var.namespace
+}
+
+# Redis IRSA outputs (conditional)
+output "redis_iam_role_arn" {
+  description = "ARN of the Redis IAM role"
+  value       = var.create_db_role ? aws_iam_role.redis_irsa[0].arn : null
+}
+
+output "redis_iam_role_name" {
+  description = "Name of the Redis IAM role"
+  value       = var.create_db_role ? aws_iam_role.redis_irsa[0].name : null
+}
+
+output "redis_service_account_name" {
+  description = "Name of the Redis Kubernetes service account"
+  value       = var.create_db_role ? kubernetes_service_account.redis_sa[0].metadata[0].name : null
 } 
