@@ -380,12 +380,4 @@ resource "helm_release" "aws_load_balancer_controller" {
   depends_on = [
     module.aws_load_balancer_controller_irsa
   ]
-
-  # ALB Controller 배포 후 webhook 서비스가 준비될 때까지 대기
-  provisioner "local-exec" {
-    command = <<-EOT
-      kubectl wait --for=condition=available --timeout=600s deployment/aws-load-balancer-controller -n kube-system
-      kubectl wait --for=condition=ready --timeout=300s endpoints/aws-load-balancer-webhook-service -n kube-system
-    EOT
-  }
 } 

@@ -481,6 +481,13 @@ resource "helm_release" "cert_manager" {
   ]
 }
 
+# ALB Controller 배포 후 대기 시간
+resource "time_sleep" "wait_for_alb_controller" {
+  depends_on = [module.alb]
+  
+  create_duration = "60s"  # 60초 대기
+}
+
 # ArgoCD Helm chart
 resource "helm_release" "argocd" {
   name       = "argocd"
@@ -515,16 +522,9 @@ resource "helm_release" "argocd" {
   depends_on = [
     module.eks,
     module.alb,
-    kubernetes_namespace.argocd
+    kubernetes_namespace.argocd,
+    time_sleep.wait_for_alb_controller
   ]
-
-  # ALB Controller가 완전히 초기화될 때까지 대기
-  provisioner "local-exec" {
-    command = <<-EOT
-      kubectl wait --for=condition=available --timeout=300s deployment/aws-load-balancer-controller -n kube-system
-      kubectl wait --for=condition=ready --timeout=300s endpoints/aws-load-balancer-webhook-service -n kube-system
-    EOT
-  }
 }
 
 # EKS 클러스터와 Helm 차트는 Terraform으로 자동 배포됩니다
