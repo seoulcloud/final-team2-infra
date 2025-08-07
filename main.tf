@@ -553,3 +553,13 @@ output "alb_controller_status" {
   description = "AWS Load Balancer Controller installation status"
   value       = "AWS Load Balancer Controller installed with IRSA support"
 }
+
+# Frontend Deploy
+module "github_oidc_roles" {
+  source = "./modules/github_oidc_roles"
+
+  github_org               = "CLD-3rd"
+  github_repo              = "final-team2-frontend"
+  s3_bucket_name           = module.s3_frontend_prod.bucket_name
+  cloudfront_distribution_id = module.cloudfront_prod.distribution_id
+}
