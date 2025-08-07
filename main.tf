@@ -521,7 +521,6 @@ resource "helm_release" "argocd" {
 
   depends_on = [
     module.eks,
-    module.alb,
     kubernetes_namespace.argocd,
     time_sleep.wait_for_alb_controller
   ]
