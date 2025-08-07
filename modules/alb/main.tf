@@ -392,11 +392,7 @@ resource "helm_release" "aws_load_balancer_controller" {
     value = "true"
   }
 
-  # Pod 안정성 설정
-  set {
-    name  = "podAnnotations.checksum/config"
-    value = "true"
-  }
+  # Pod 안정성 설정 (제거 - 불필요한 설정)
 
   # 리소스 요청 증가 (webhook 안정성)
   set {
