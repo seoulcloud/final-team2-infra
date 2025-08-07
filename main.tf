@@ -201,8 +201,35 @@ module "s3_frontend_prod" {
   source      = "./modules/s3_frontend"
   prefix      = "prod"
   bucket_name = "${var.project_name}-frontend"
-  cloudfront_distribution_arn = module.cloudfront_prod.distribution_arn
 }
+
+
+resource "aws_s3_bucket_policy" "frontend_policy" {
+  bucket = module.s3_frontend_prod.bucket_id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "cloudfront.amazonaws.com"
+      }
+      Action = "s3:GetObject"
+      Resource = "${module.s3_frontend_prod.bucket_arn}/*"
+      Condition = {
+        StringEquals = {
+          "AWS:SourceArn" = module.cloudfront_prod.distribution_arn
+        }
+      }
+    }]
+  })
+
+  depends_on = [
+    module.s3_frontend_prod,
+    module.cloudfront_prod,
+  ]
+}
+
 
 # s3_backend (prod 환경)  -> 백엔드에서 s3 사용 안함
 # module "s3_backend_prod" {
@@ -219,6 +246,9 @@ module "s3_frontend_prod" {
 # output "backend_bucket_name" {
 #   value = module.s3_backend_prod.bucket_name
 # }
+
+
+
 
 #========================
 

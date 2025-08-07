@@ -10,29 +10,29 @@ resource "aws_s3_bucket" "frontend" {
   }
 }
 
-resource "aws_s3_bucket_policy" "frontend_policy" {
-  bucket = aws_s3_bucket.frontend.id
+# resource "aws_s3_bucket_policy" "frontend_policy" {
+#   bucket = aws_s3_bucket.frontend.id
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "cloudfront.amazonaws.com"
-        }
-        Action = "s3:GetObject"
-        Resource = "${aws_s3_bucket.frontend.arn}/*"
-        Condition = {
-          StringEquals = {
-            "AWS:SourceArn" = var.cloudfront_distribution_arn
-          }
-        }
-      }
-    ]
-  })
-  depends_on = [aws_s3_bucket_public_access_block.allow_public]
-}
+#   policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [
+#       {
+#         Effect = "Allow"
+#         Principal = {
+#           Service = "cloudfront.amazonaws.com"
+#         }
+#         Action = "s3:GetObject"
+#         Resource = "${aws_s3_bucket.frontend.arn}/*"
+#         Condition = {
+#           StringEquals = {
+#             "AWS:SourceArn" = var.cloudfront_distribution_arn
+#           }
+#         }
+#       }
+#     ]
+#   })
+#   depends_on = [aws_s3_bucket_public_access_block.allow_public]
+# }
 
 resource "aws_s3_bucket_public_access_block" "allow_public" {
   bucket = aws_s3_bucket.frontend.id
