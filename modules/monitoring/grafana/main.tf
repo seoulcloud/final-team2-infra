@@ -1,3 +1,4 @@
+# Grafana Helm 설치
 resource "helm_release" "grafana" {
   name       = "grafana"
   namespace  = var.namespace
@@ -17,4 +18,14 @@ resource "helm_release" "grafana" {
   }
 
   depends_on = [var.depends_on_module]
+}
+
+# Grafana LoadBalancer 서비스 정보 조회
+data "kubernetes_service" "grafana" {
+  metadata {
+    name      = "grafana"
+    namespace = var.namespace
+  }
+
+  depends_on = [helm_release.grafana]
 }
