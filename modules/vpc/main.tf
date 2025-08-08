@@ -134,6 +134,8 @@ resource "aws_subnet" "public" {
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-public-subnet-${count.index + 1}"
     Type = "Public-Subnet"
+    "kubernetes.io/role/elb" = "1"
+    "kubernetes.io/cluster/${var.project_name}-${var.environment}-cluster" = "owned"
   })
 }
 
