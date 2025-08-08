@@ -561,7 +561,7 @@ resource "helm_release" "argocd" {
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
-  version    = "5.51.6"
+  version    = "8.2.5"
   namespace  = kubernetes_namespace.argocd.metadata[0].name
   timeout    = 900  # 15분으로 타임아웃 증가
 
@@ -628,11 +628,6 @@ resource "helm_release" "argocd" {
   }
 
   set {
-    name  = "server.ingress.annotations.kubernetes\\.io/ingress\\.class"
-    value = "alb"
-  }
-
-  set {
     name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/scheme"
     value = "internet-facing"
   }
@@ -654,13 +649,13 @@ resource "helm_release" "argocd" {
   }
 
   set {
-    name  = "server.ingress.pathType"
-    value = "Prefix"
+    name  = "server.ingress.paths[0].path"
+    value = "/"
   }
 
   set {
-    name  = "server.ingress.paths[0]"
-    value = "/"
+    name  = "server.ingress.paths[0].pathType"
+    value = "Prefix"
   }
 
   depends_on = [
