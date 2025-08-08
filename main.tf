@@ -368,6 +368,33 @@ resource "aws_route53_record" "frontend" {
   ]
 }
 
+# PostgreSQL (RDS)
+resource "aws_route53_record" "rds_endpoint" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "pg-db.${var.domain_name}"                  # 예: pg-db.goteego.store
+  type    = "CNAME"
+  ttl     = 300
+  records = [module.rds_postgresql.db_instance_endpoint] # RDS 모듈 output
+}
+
+# MongoDB (DocumentDB)
+resource "aws_route53_record" "mongodb_endpoint" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "mongo-db.${var.domain_name}"                # 예: mongo-db.goteego.store
+  type    = "CNAME"
+  ttl     = 300
+  records = [module.documentdb.docdb_cluster_endpoint]   # DocumentDB 모듈 output
+}
+
+# Redis (ElastiCache)
+resource "aws_route53_record" "redis_endpoint" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "redis.${var.domain_name}"                   # 예: redis.goteego.store
+  type    = "CNAME"
+  ttl     = 300
+  records = [module.elasticache.primary_endpoint_address] # ElastiCache 모듈 output
+}
+
 
 # elasticache ==========================
 #test
