@@ -632,8 +632,8 @@ resource "helm_release" "argocd" {
   }
 
   set {
-    name  = "server.ingress.annotations.cert-manager\\.io/cluster-issuer"
-    value = "letsencrypt-staging"
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/listen-ports"
+    value = "[{\"HTTP\":80}]"
   }
 
   # Hosts and TLS (default to prod host; adjust via tfvars if needed)
@@ -643,13 +643,13 @@ resource "helm_release" "argocd" {
   }
 
   set {
-    name  = "server.ingress.tls[0].hosts[0]"
-    value = "argocd.goteego.store"
+    name  = "server.ingress.pathType"
+    value = "Prefix"
   }
 
   set {
-    name  = "server.ingress.tls[0].secretName"
-    value = "argocd-tls"
+    name  = "server.ingress.paths[0]"
+    value = "/"
   }
 
   depends_on = [
