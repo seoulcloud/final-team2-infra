@@ -209,6 +209,17 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
         ]
         Resource = "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"
       }
+      ,
+      {
+        Effect = "Allow"
+        Action = [
+          "wafv2:GetWebACLForResource",
+          "wafv2:GetWebACL",
+          "wafv2:AssociateWebACL",
+          "wafv2:DisassociateWebACL"
+        ]
+        Resource = "*"
+      }
     ]
   })
 

@@ -568,7 +568,7 @@ resource "helm_release" "argocd" {
   # ArgoCD Server 설정
   set {
     name  = "server.service.type"
-    value = "LoadBalancer"
+    value = "ClusterIP"
   }
 
   set {
@@ -613,6 +613,54 @@ resource "helm_release" "argocd" {
   set {
     name  = "server.replicaCount"
     value = "1"
+  }
+
+  # Enable Ingress (ALB)
+  set {
+    name  = "server.ingress.enabled"
+    value = "true"
+  }
+
+  # Ingress class and ALB annotations
+  set {
+    name  = "server.ingress.ingressClassName"
+    value = "alb"
+  }
+
+  set {
+    name  = "server.ingress.annotations.kubernetes\\.io/ingress\\.class"
+    value = "alb"
+  }
+
+  set {
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/scheme"
+    value = "internet-facing"
+  }
+
+  set {
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/target-type"
+    value = "ip"
+  }
+
+  set {
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/listen-ports"
+    value = "[{\"HTTP\":80}]"
+  }
+
+  # Hosts and TLS (default to prod host; adjust via tfvars if needed)
+  set {
+    name  = "server.ingress.hosts[0]"
+    value = "argocd.goteego.store"
+  }
+
+  set {
+    name  = "server.ingress.pathType"
+    value = "Prefix"
+  }
+
+  set {
+    name  = "server.ingress.paths[0]"
+    value = "/"
   }
 
   depends_on = [
