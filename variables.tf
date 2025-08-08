@@ -256,6 +256,7 @@ variable "grafana_admin_password" {
   description = "Grafana admin 비밀번호"
   type        = string
   sensitive   = true
+  default     = "" # Will be set via environment variable
 }
 
 # GitOps Configuration
