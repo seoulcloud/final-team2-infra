@@ -220,6 +220,23 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
         ]
         Resource = "*"
       }
+      ,
+      {
+        Effect = "Allow"
+        Action = [
+          "shield:GetSubscriptionState"
+        ]
+        Resource = "*"
+      }
+      ,
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupIngress"
+        ]
+        Resource = "*"
+      }
     ]
   })
 
