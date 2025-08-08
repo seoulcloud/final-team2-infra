@@ -4,9 +4,9 @@ service:
 ingress:
   enabled: true
   annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/backend-protocol: "HTTP"
     alb.ingress.kubernetes.io/group.name: monitoring
   ingressClassName: alb
   hosts:
@@ -14,7 +14,7 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-  tls: []
+  # tls: []
 
 datasources:
   datasources.yaml:
