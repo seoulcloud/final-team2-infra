@@ -557,106 +557,11 @@ resource "time_sleep" "wait_for_alb_controller" {
 }
 
 # ArgoCD Helm chart
-resource "helm_release" "argocd" {
-  name       = "argocd"
-  repository = "https://argoproj.github.io/argo-helm"
-  chart      = "argo-cd"
-  version    = "8.2.5"
-  namespace  = kubernetes_namespace.argocd.metadata[0].name
-  timeout    = 900  # 15분으로 타임아웃 증가
-
-  # ArgoCD Server 설정
-  set {
-    name  = "server.service.type"
-    value = "ClusterIP"
-  }
-
-  set {
-    name  = "server.extraArgs[0]"
-    value = "--insecure" # HTTPS 리다이렉트 비활성화 (ALB에서 처리)
-  }
-
-  # ArgoCD Config
-  set {
-    name  = "configs.params.server\\.insecure"
-    value = "true"
-  }
-
-  # RBAC 설정 (기본값을 사용하여 에러 방지)
-  set {
-    name  = "configs.rbac.policy\\.default"
-    value = "role:readonly"
-  }
-
-  # 리소스 설정 (타임아웃 방지)
-  set {
-    name  = "server.resources.requests.cpu"
-    value = "100m"
-  }
-
-  set {
-    name  = "server.resources.requests.memory"
-    value = "128Mi"
-  }
-
-  set {
-    name  = "server.resources.limits.cpu"
-    value = "200m"
-  }
-
-  set {
-    name  = "server.resources.limits.memory"
-    value = "256Mi"
-  }
-
-  # 레플리카 수 조정
-  set {
-    name  = "server.replicaCount"
-    value = "1"
-  }
-
-  # Enable Ingress (ALB)
-  set {
-    name  = "server.ingress.enabled"
-    value = "true"
-  }
-
-  # Ingress class and ALB annotations
-  set {
-    name  = "server.ingress.ingressClassName"
-    value = "alb"
-  }
-
-  set {
-    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/scheme"
-    value = "internet-facing"
-  }
-
-  set {
-    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/target-type"
-    value = "ip"
-  }
-
-  set {
-    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/listen-ports"
-    value = "[{\"HTTP\":80}]"
-  }
-
-  # Hosts and TLS (default to prod host; adjust via tfvars if needed)
-  set {
-    name  = "server.ingress.hosts"
-    value = "[]"
-  }
-
-  set {
-    name  = "server.ingress.paths[0].path"
-    value = "/"
-  }
-
-  set {
-    name  = "server.ingress.paths[0].pathType"
-    value = "Prefix"
-  }
+module "argocd" {
+  source    = "./modules/argocd"
+  namespace = kubernetes_namespace.argocd.metadata[0].name
+  chart_version   = "8.2.5"
+  timeout   = 900
 
   depends_on = [
     module.eks,
@@ -668,17 +573,6 @@ resource "helm_release" "argocd" {
 # EKS 클러스터와 Helm 차트는 Terraform으로 자동 배포됩니다
 # GitOps 설정만 수동으로 진행하면 됩니다
 
-# Output ArgoCD information
-output "argocd_server_url" {
-  description = "ArgoCD Server URL (LoadBalancer)"
-  value       = "Check LoadBalancer external IP: kubectl get svc argocd-server -n argocd"
-}
-
-output "argocd_admin_password" {
-  description = "ArgoCD Admin Password Command"
-  value       = "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
-  sensitive   = true
-}
 
 output "cert_manager_status" {
   description = "cert-manager installation status"

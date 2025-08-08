@@ -104,3 +104,6 @@ $RECYCLE.BIN/
 
 # node-log
 *.txt
+
+# cursorrules
+**/.cursor/*
