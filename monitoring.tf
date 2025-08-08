@@ -29,7 +29,7 @@ module "prometheus" {
 }
 
 module "grafana" {
-  source                = "./modules/grafana"
+  source                = "./modules/monitoring/grafana"
   namespace             = "monitoring"
   chart_version         = "7.3.9"
   depends_on_module     = module.prometheus
