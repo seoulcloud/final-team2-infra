@@ -617,22 +617,22 @@ resource "helm_release" "argocd" {
   }
 
   set {
-    name  = "server.ingress.annotations.kubernetes\.io/ingress\.class"
+    name  = "server.ingress.annotations.kubernetes\\.io/ingress\\.class"
     value = "alb"
   }
 
   set {
-    name  = "server.ingress.annotations.alb\.ingress\.kubernetes\.io/scheme"
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/scheme"
     value = "internet-facing"
   }
 
   set {
-    name  = "server.ingress.annotations.alb\.ingress\.kubernetes\.io/target-type"
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/target-type"
     value = "ip"
   }
 
   set {
-    name  = "server.ingress.annotations.cert-manager\.io/cluster-issuer"
+    name  = "server.ingress.annotations.cert-manager\\.io/cluster-issuer"
     value = "letsencrypt-staging"
   }
 
