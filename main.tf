@@ -644,6 +644,11 @@ resource "helm_release" "argocd" {
 
   # Hosts and TLS (default to prod host; adjust via tfvars if needed)
   set {
+    name  = "server.ingress.hosts"
+    value = "[]"
+  }
+
+  set {
     name  = "server.ingress.paths[0].path"
     value = "/"
   }
