@@ -216,7 +216,9 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
           "wafv2:GetWebACLForResource",
           "wafv2:GetWebACL",
           "wafv2:AssociateWebACL",
-          "wafv2:DisassociateWebACL"
+          "wafv2:DisassociateWebACL",
+          "waf-regional:GetWebACLForResource",
+          "waf-regional:GetWebACL"
         ]
         Resource = "*"
       }
