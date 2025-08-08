@@ -7,7 +7,7 @@ output "domain_name" {
 }
 
 
-output "aws_cloudfront_distribution_arn" {
+output "distribution_arn" {
   description = "CloudFront distribution ARN"
   value       = aws_cloudfront_distribution.this.arn
 }
