@@ -18,7 +18,7 @@ resource "aws_acm_certificate" "cert" {
   domain_name       = "goteego.store"
   validation_method = "DNS"
 
-  subject_alternative_names = ["www.goteego.store","goteego.store"]
+  subject_alternative_names = ["www.goteego.store", "goteego.store"]
 
   lifecycle {
     create_before_destroy = true

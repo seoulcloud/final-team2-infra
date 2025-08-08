@@ -1,8 +1,8 @@
 # RDS CPU 모니터링
 module "monitoring_rds_cpu" {
-  source             = "./modules/monitoring"
-  sns_topic_name     = "${var.project_name}-rds-alerts"
-  email_addresses    = var.alert_emails
+  source          = "./modules/monitoring"
+  sns_topic_name  = "${var.project_name}-rds-alerts"
+  email_addresses = var.alert_emails
 
   alarm_name          = "${var.project_name}-RDS-CPU-HIGH"
   comparison_operator = "GreaterThanThreshold"
@@ -22,17 +22,17 @@ module "monitoring_rds_cpu" {
 }
 
 module "prometheus" {
-  source             = "./modules/monitoring/prometheus"
-  namespace          = "monitoring"
-  chart_version      = "56.6.2"
-  depends_on_module  = module.eks
+  source            = "./modules/monitoring/prometheus"
+  namespace         = "monitoring"
+  chart_version     = "56.6.2"
+  depends_on_module = module.eks
 }
 
 module "grafana" {
-  source                = "./modules/monitoring/grafana"
-  namespace             = "monitoring"
-  chart_version         = "7.3.9"
-  depends_on_module     = module.prometheus
+  source                 = "./modules/monitoring/grafana"
+  namespace              = "monitoring"
+  chart_version          = "7.3.9"
+  depends_on_module      = module.prometheus
   grafana_admin_password = var.grafana_admin_password
 }
 
