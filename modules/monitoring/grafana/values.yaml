@@ -1,9 +1,20 @@
 service:
-  type: LoadBalancer
+  type: ClusterIP
+
+ingress:
+  enabled: true
   annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: "external"
-    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/group.name: monitoring
+  ingressClassName: alb
+  hosts:
+    - host: grafana.goteego.store
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
 
 datasources:
   datasources.yaml:

@@ -21,7 +21,7 @@ resource "helm_release" "grafana" {
 }
 
 # Grafana LoadBalancer 서비스 정보 조회
-data "kubernetes_service" "grafana" {
+data "kubernetes_ingress" "grafana" {
   metadata {
     name      = "grafana"
     namespace = var.namespace
