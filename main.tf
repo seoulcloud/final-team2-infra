@@ -159,26 +159,6 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
   depends_on = [module.documentdb]
 }
 
-# Output important values
-output "vpc_id" {
-  description = "VPC ID"
-  value       = module.vpc.vpc_id
-}
-
-output "eks_cluster_endpoint" {
-  description = "EKS Cluster Endpoint"
-  value       = module.eks.cluster_endpoint
-}
-
-output "eks_cluster_name" {
-  description = "EKS Cluster Name"
-  value       = module.eks.cluster_name
-}
-
-output "ssm_session_manager_url" {
-  description = "SSM Session Manager Connection Guide"
-  value       = "Use 'aws ssm start-session --target <instance-id> --profile default' to connect"
-}
 
 
 # OAC ===========
@@ -554,21 +534,6 @@ module "argocd" {
 
 
 
-# ALB Module Outputs
-output "alb_controller_role_arn" {
-  description = "AWS Load Balancer Controller IAM Role ARN"
-  value       = module.alb.aws_load_balancer_controller_role_arn
-}
-
-output "alb_security_group_id" {
-  description = "ALB Security Group ID"
-  value       = module.alb.alb_security_group_id
-}
-
-output "alb_controller_status" {
-  description = "AWS Load Balancer Controller installation status"
-  value       = "AWS Load Balancer Controller installed with IRSA support"
-}
 
 # Frontend Deploy
 module "github_oidc_roles" {
@@ -578,4 +543,45 @@ module "github_oidc_roles" {
   github_repo                = "final-team2-frontend"
   s3_bucket_name             = module.s3_frontend_prod.bucket_name
   cloudfront_distribution_id = module.cloudfront_prod.distribution_id
+}
+
+# Metrics Server (Helm) - install after EKS
+module "metrics_server" {
+  source = "./modules/metrics_server"
+
+  # Defaults are fine; override if needed
+  namespace           = "kube-system"
+  chart_version       = "3.12.1"
+  insecure_kubelet_tls = true
+  host_network        = false
+  timeout             = 600
+
+  depends_on = [
+    module.eks
+  ]
+}
+
+# Example HPA for a workload (adjust target as needed)
+module "hpa_backend" {
+  source = "./modules/hpa"
+  count  = var.enable_example_hpa ? 1 : 0
+
+  name        = "backend-hpa"
+  namespace   = "default"
+  target_kind = "Deployment"
+  target_name = "backend"
+
+  min_replicas = 1
+  max_replicas = 5
+
+  average_cpu_utilization    = 60
+  average_memory_utilization = null
+
+  labels = {
+    "app.kubernetes.io/managed-by" = "terraform"
+  }
+
+  depends_on = [
+    module.metrics_server
+  ]
 }

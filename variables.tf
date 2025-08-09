@@ -271,3 +271,9 @@ variable "github_username" {
   type        = string
   default     = ""
 }
+
+variable "enable_example_hpa" {
+  description = "Enable the example HPA module (set true only if target workload exists)"
+  type        = bool
+  default     = false
+}
