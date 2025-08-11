@@ -26,7 +26,7 @@ resource "helm_release" "grafana" {
   # Prometheus ClusterIP 동적 세팅
   set {
     name  = "datasources.datasources\\.yaml.datasources[0].url"
-    value = "http://${data.kubernetes_service.prom.spec[0].cluster_ip}:9090"
+    value = format("http://%s:9090", data.kubernetes_service.prom.spec[0].cluster_ip)
   }
 
   depends_on = [var.depends_on_module]
@@ -47,14 +47,4 @@ resource "aws_security_group_rule" "alb_to_nodes_grafana" {
 resource "time_sleep" "wait_for_alb" {
   depends_on       = [helm_release.grafana]
   create_duration  = "60s"
-}
-
-# Grafana LoadBalancer 서비스 정보 조회
-data "kubernetes_ingress_v1" "grafana" {
-  metadata {
-    name      = "grafana"
-    namespace = var.namespace
-  }
-
-  depends_on = [helm_release.grafana]
 }
