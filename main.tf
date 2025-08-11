@@ -395,17 +395,16 @@ resource "aws_route53_record" "redis_endpoint" {
   records = [module.elasticache.primary_endpoint_address] # ElastiCache 모듈 output
 }
 
-# # Grafana 외부 접속용 도메인(grafana.goteego.store)
-# resource "aws_route53_record" "grafana" {
-#   zone_id = aws_route53_zone.main.zone_id
-#   name    = "grafana.${var.domain_name}"
-#   type    = "CNAME"
-#   ttl     = 300
+# Grafana 외부 접속용 도메인(grafana.goteego.store)
+resource "aws_route53_record" "grafana" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "grafana.${var.domain_name}"
+  type    = "CNAME"
+  ttl     = 300
 
-#   records = [module.grafana.grafana_alb_dns]
-
-#   depends_on = [module.grafana]
-# }
+  records = [module.grafana.grafana_alb_dns]
+  depends_on = [module.grafana]
+}
 
 # elasticache ==========================
 #test
