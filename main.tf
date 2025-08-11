@@ -548,6 +548,22 @@ module "argocd" {
   ]
 }
 
+# ALB → EKS NodeGroup SG: ArgoCD 서버 targetPort(8080) 허용
+resource "aws_security_group_rule" "allow_alb_to_nodes_argo_8080" {
+  type                     = "ingress"
+  description              = "Allow ALB to reach ArgoCD server on targetPort 8080"
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
+  security_group_id        = module.eks.node_group_security_group_id
+  source_security_group_id = module.alb.alb_security_group_id
+
+  depends_on = [
+    module.alb,
+    module.eks
+  ]
+}
+
 # EKS 클러스터와 Helm 차트는 Terraform으로 자동 배포됩니다
 # GitOps 설정만 수동으로 진행하면 됩니다
 
