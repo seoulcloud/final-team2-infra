@@ -612,8 +612,8 @@ resource "aws_eks_addon" "ebs_csi_driver" {
 
   service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
   
-  resolve_conflicts_on_create = "PRESERVE"
-  resolve_conflicts_on_update = "PRESERVE"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
   
   depends_on = [
     aws_eks_node_group.main,
