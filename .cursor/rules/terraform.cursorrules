@@ -1,0 +1,46 @@
+rules:
+  - name: enforce_dry_principle
+    description: |
+      모든 Terraform 코드에서 중복된 리소스를 감지해 모듈화 권장.
+      - 중복되는 리소스(같은 설정이 2개 이상일 경우) 모듈화 예시 코드 제시.
+      - 변수와 outputs 설계를 추천하여 유지보수성을 높인다.
+
+  - name: ci_cd_ready
+    description: |
+      코드가 CI/CD (GitHub Actions 또는 ArgoCD)로 배포될 수 있도록:
+      - backend 설정과 환경별(workspace) 구조를 검토.
+      - GitHub Actions용 워크플로우 yaml 또는 ArgoCD용 app manifest 예시 제공.
+      - plan → manual approve → apply 단계를 포함한 안전한 배포 흐름을 추천.
+
+  - name: security_and_access
+    description: |
+      - Bastion Host를 사용하지않고 필요한 IAM Role, Security Group 정책 점검.
+      - Public IP, Wide Open Security Group(0.0.0.0/0) 발견 시 경고 및 수정 제안.
+      - 정책/Role 정의가 중복되거나 과도한 권한이 있으면 최소 권한으로 수정 가이드 제공.
+
+  - name: maintainability
+    description: |
+      - 변수와 모듈 구조가 확장 가능한지 점검.
+      - Dev/Prod 환경에 쉽게 확장 가능한 구조 제안.
+      - 백엔드(state) 분리를 통한 협업 안전성 확보 가이드 제공.
+      - 테라폼클라우드 의 협업환경을 고려.
+  - name: approval_required
+    description: |
+      Cursor는 절대로 `terraform apply` 등 실행 명령어를 직접 실행하지 않는다.
+      모든 변경 사항은:
+      - 변경 요약(체인지로그) 형태로 사용자에게 보여주고,
+        사용자가 수동으로 확인 후 실행 명령을 내릴 때만 적용.
+
+  - name: additional_checks
+    description: |
+      - 모든 코드 변경 시 `terraform fmt`, `terraform validate`등은 사용자가 직접 수행.
+      - 변경된 리소스 수, 예상 비용, 보안 경고 등을 요약한 리포트 생성.
+      - 중대한 변경(리소스 삭제/교체)이 있으면 배포 전 대체 전략(백업, Blue/Green) 제안.
+
+  - name: aws_credentials_handling
+    description: |
+      Terraform 코드 작성이나 배포 과정에서 AWS 자격 증명(AWS Access Key, Secret Key, .pem 키파일)이 필요할 경우:
+      - Cursor는 절대 키를 임의로 생성하거나 저장하지 않는다.
+      - 항상 사용자에게 키 입력 또는 생성 여부를 확인 후 진행한다.
+      - 입력된 키 값은 코드에 하드코딩하지 않고, 반드시 `variables.tf` 또는 환경 변수(.env)로 분리해 관리하도록 안내한다.
+      - 키가 사용되는 모든 리소스에 대해 보안상의 위험(권한 과다, 공개 저장소 유출 가능성)을 점검하고 경고한다.
