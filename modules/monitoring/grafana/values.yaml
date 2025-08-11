@@ -10,10 +10,9 @@ ingress:
     alb.ingress.kubernetes.io/backend-protocol: "HTTP"
     alb.ingress.kubernetes.io/group.name: "monitoring"
   hosts:
-    - host: grafana.goteego.store
-      paths:
-        - path: /
-          pathType: Prefix
+    - grafana.goteego.store # ← 문자열 리스트!
+  path: /
+  pathType: Prefix
   tls: [] # 추후 HTTPS 시 ACM 연결
 
 datasources:
