@@ -9,9 +9,8 @@ ingress:
     alb.ingress.kubernetes.io/target-type: "ip"
     alb.ingress.kubernetes.io/backend-protocol: "HTTP"
     alb.ingress.kubernetes.io/group.name: "monitoring"
-
-    alb.ingress.kubernetes.io/healthcheck-path: "/api/health"
-    alb.ingress.kubernetes.io/success-codes: "200"
+    alb.ingress.kubernetes.io/healthcheck-path: "/login"
+    alb.ingress.kubernetes.io/success-codes: "200-399"
     alb.ingress.kubernetes.io/healthcheck-port: "traffic-port"
   hosts:
     - grafana.goteego.store # ← 문자열 리스트!
@@ -19,13 +18,19 @@ ingress:
   pathType: Prefix
   tls: [] # 추후 HTTPS 시 ACM 연결
 
+podDnsPolicy: ClusterFirst
+podDnsConfig:
+  options:
+    - name: ndots
+      value: "1"
+
 datasources:
   datasources.yaml:
     apiVersion: 1
     datasources:
       - name: Prometheus
         type: prometheus
-        url: http://kube-prometheus-stack-prometheus:9090
+        url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
         access: proxy
         isDefault: true
 

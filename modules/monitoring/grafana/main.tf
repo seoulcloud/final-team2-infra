@@ -17,6 +17,18 @@ resource "helm_release" "grafana" {
     value = var.grafana_admin_password
   }
 
+  # Ingress annotation에 SG 동적 세팅
+  set {
+    # 점(.)은 키 경로 구분자라서 escape 필요
+    name  = "ingress.annotations.alb\\.ingress\\.kubernetes\\.io/security-groups"
+    value = var.alb_sg_id
+  }
+  # Prometheus ClusterIP 동적 세팅
+  set {
+    name  = "datasources.datasources\\.yaml.datasources[0].url"
+    value = "http://${data.kubernetes_service.prom.spec[0].cluster_ip}:9090"
+  }
+
   depends_on = [var.depends_on_module]
 }
 
