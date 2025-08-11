@@ -93,8 +93,8 @@ resource "helm_release" "argocd" {
 
   # Git Repository 자동 등록
   set {
-    name  = "configs.repositories.team2-manifest"
-    value = "url: https://github.com/CLD-3rd/final-team2-manifest.git"
+    name  = "configs.repositories[0].url"
+    value = "https://github.com/CLD-3rd/final-team2-manifest.git"
   }
 
   # Application Set Controller 활성화
