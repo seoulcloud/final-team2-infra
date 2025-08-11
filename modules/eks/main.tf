@@ -169,40 +169,40 @@ resource "aws_iam_role_policy" "node_group_ssm_custom" {
 #   })
 # }
 
-# EBS CSI Driver IAM Policy
-resource "aws_iam_policy" "ebs_csi_driver" {
-  name        = "${var.project_name}-${var.environment}-ebs-csi-driver-policy"
-  description = "EBS CSI driver policy for EKS"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "ec2:AttachVolume",
-          "ec2:CreateSnapshot",
-          "ec2:CreateTags",
-          "ec2:CreateVolume",
-          "ec2:DeleteSnapshot",
-          "ec2:DeleteTags",
-          "ec2:DeleteVolume",
-          "ec2:DescribeInstances",
-          "ec2:DescribeSnapshots",
-          "ec2:DescribeTags",
-          "ec2:DescribeVolumes",
-          "ec2:DetachVolume"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-
-  tags = merge(var.common_tags, {
-    Name = "${var.project_name}-${var.environment}-ebs-csi-driver-policy"
-    Type = "IAM-Policy"
-  })
-}
+# EBS CSI Driver IAM Policy - 주석처리
+# resource "aws_iam_policy" "ebs_csi_driver" {
+#   name        = "${var.project_name}-${var.environment}-ebs-csi-driver-policy"
+#   description = "EBS CSI driver policy for EKS"
+#
+#   policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [
+#       {
+#         Effect = "Allow"
+#         Action = [
+#           "ec2:AttachVolume",
+#           "ec2:CreateSnapshot",
+#           "ec2:CreateTags",
+#           "ec2:CreateVolume",
+#           "ec2:DeleteSnapshot",
+#           "ec2:DeleteTags",
+#           "ec2:DeleteVolume",
+#           "ec2:DescribeInstances",
+#           "ec2:DescribeSnapshots",
+#           "ec2:DescribeTags",
+#           "ec2:DescribeVolumes",
+#           "ec2:DetachVolume"
+#         ]
+#         Resource = "*"
+#       }
+#     ]
+#   })
+#
+#   tags = merge(var.common_tags, {
+#     Name = "${var.project_name}-${var.environment}-ebs-csi-driver-policy"
+#     Type = "IAM-Policy"
+#   })
+# }
 
 # EKS Cluster Admin IAM Role (사용자 접근용)
 resource "aws_iam_role" "cluster_admin" {
@@ -271,39 +271,39 @@ resource "aws_iam_policy" "ssm_eks_access" {
   })
 }
 
-# EBS CSI Driver IAM Role
-resource "aws_iam_role" "ebs_csi_driver" {
-  name = "${var.project_name}-${var.environment}-ebs-csi-driver-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Federated = aws_iam_openid_connect_provider.eks.arn
-        }
-        Action = "sts:AssumeRoleWithWebIdentity"
-        Condition = {
-          StringEquals = {
-            "${replace(aws_eks_cluster.main.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
-          }
-        }
-      }
-    ]
-  })
-
-  tags = merge(var.common_tags, {
-    Name = "${var.project_name}-${var.environment}-ebs-csi-driver-role"
-    Type = "IAM-Role"
-  })
-}
-
-# Attach EBS CSI Driver policy to role
-resource "aws_iam_role_policy_attachment" "ebs_csi_driver" {
-  role       = aws_iam_role.ebs_csi_driver.name
-  policy_arn = aws_iam_policy.ebs_csi_driver.arn
-}
+# EBS CSI Driver IAM Role - 주석처리
+# resource "aws_iam_role" "ebs_csi_driver" {
+#   name = "${var.project_name}-${var.environment}-ebs-csi-driver-role"
+#
+#   assume_role_policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [
+#       {
+#         Effect = "Allow"
+#         Principal = {
+#           Federated = aws_iam_openid_connect_provider.eks.arn
+#         }
+#         Action = "sts:AssumeRoleWithWebIdentity"
+#         Condition = {
+#           StringEquals = {
+#             "${replace(aws_eks_cluster.main.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+#           }
+#         }
+#       }
+#     ]
+#   })
+#
+#   tags = merge(var.common_tags, {
+#     Name = "${var.project_name}-${var.environment}-ebs-csi-driver-role"
+#     Type = "IAM-Role"
+#   })
+# }
+#
+# # Attach EBS CSI Driver policy to role
+# resource "aws_iam_role_policy_attachment" "ebs_csi_driver" {
+#   role       = aws_iam_role.ebs_csi_driver.name
+#   policy_arn = aws_iam_policy.ebs_csi_driver.arn
+# }
 
 # EKS Cluster Security Group
 resource "aws_security_group" "cluster" {
@@ -605,26 +605,32 @@ resource "aws_eks_addon" "kube_proxy" {
   })
 }
 
-# EBS CSI Driver for persistent volumes
-resource "aws_eks_addon" "ebs_csi_driver" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "aws-ebs-csi-driver"
-
-  service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
-
-  resolve_conflicts_on_create = var.addon_resolve_conflicts
-  resolve_conflicts_on_update = var.addon_resolve_conflicts
-
-  depends_on = [
-    aws_eks_node_group.main,
-    aws_eks_access_entry.node_group, # AccessEntry 생성 후 Add-on 생성
-  ]
-
-  tags = merge(var.common_tags, {
-    Name = "${var.cluster_name}-ebs-csi-driver"
-    Type = "EKS-Addon"
-  })
-}
+# EBS CSI Driver for persistent volumes - 주석처리
+# resource "aws_eks_addon" "ebs_csi_driver" {
+#   cluster_name = aws_eks_cluster.main.name
+#   addon_name   = "aws-ebs-csi-driver"
+#   
+#   service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
+#   
+#   resolve_conflicts_on_create = "OVERWRITE"
+#   resolve_conflicts_on_update = "OVERWRITE"
+#   
+#   depends_on = [
+#     aws_eks_node_group.main,
+#     aws_eks_access_entry.cluster_admin,  # Cluster Admin AccessEntry 사용
+#   ]
+#   
+#   tags = merge(var.common_tags, {
+#     Name = "${var.cluster_name}-ebs-csi-driver"
+#     Type = "EKS-Addon"
+#   })
+#
+#   # EBS CSI Driver는 설치에 시간이 오래 걸림
+#   timeouts {
+#     create = "30m"
+#     update = "30m"
+#   }
+# }
 
 # EKS Access Entry for Node Group IAM Role (관리자 권한 제거)
 resource "aws_eks_access_entry" "node_group" {
