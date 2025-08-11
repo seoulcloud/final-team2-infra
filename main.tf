@@ -82,8 +82,8 @@ module "eks" {
 }
 
 # RDS PostgreSQL DB Module
-module "rds_postgresql" {
-  source = "./modules/rds_postgresql"
+module "rds" {
+  source = "./modules/rds"
 
   # 프로젝트 기본 설정
   project_name = var.project_name
