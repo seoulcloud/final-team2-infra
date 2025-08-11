@@ -60,7 +60,7 @@ module "eks" {
   # Cluster Endpoint Configuration (배포 후 콘솔에서 private로 변경)
   cluster_endpoint_config = {
     private_access      = true
-    public_access       = true   # Terraform Cloud 배포를 위해 임시 활성화
+    public_access       = true          # Terraform Cloud 배포를 위해 임시 활성화
     public_access_cidrs = ["0.0.0.0/0"] # 배포 완료 후 콘솔에서 private로 변경
   }
 
@@ -90,16 +90,16 @@ module "rds_postgresql" {
   environment  = var.environment
 
   # 엔진 및 인스턴스 설정 (프리티어 기준)
-  engine_version          = "14.13"
-  instance_class          = "db.t3.micro"
-  allocated_storage       = 20
-  max_allocated_storage   = 20
-  storage_type            = "gp2"
+  engine_version        = "14.13"
+  instance_class        = "db.t3.micro"
+  allocated_storage     = 20
+  max_allocated_storage = 20
+  storage_type          = "gp2"
 
   # DB 정보
-  db_name      = var.project_name
-  db_username  = var.project_name
-  db_password  = var.db_password_postgresql
+  db_name              = var.project_name
+  db_username          = var.project_name
+  db_password          = var.db_password_postgresql
   parameter_group_name = "default.postgres14"
 
   # 가용성 및 백업
@@ -144,11 +144,11 @@ module "documentdb" {
 ## SSM Parameter 등록 ====== test
 
 resource "aws_ssm_parameter" "db_password_postgresql" {
-  name  = "/${var.project_name}/${var.environment}/db_password_postgresql"
-  type  = "SecureString"  # 암호화 저장
-  value = var.db_password_postgresql
-  tags  = var.common_tags
-  depends_on  = [module.rds_postgresql]
+  name       = "/${var.project_name}/${var.environment}/db_password_postgresql"
+  type       = "SecureString" # 암호화 저장
+  value      = var.db_password_postgresql
+  tags       = var.common_tags
+  depends_on = [module.rds_postgresql]
 }
 
 resource "aws_ssm_parameter" "db_password_mongodb" {
@@ -214,7 +214,7 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
       Principal = {
         Service = "cloudfront.amazonaws.com"
       }
-      Action = "s3:GetObject"
+      Action   = "s3:GetObject"
       Resource = "${module.s3_frontend_prod.bucket_arn}/*"
       Condition = {
         StringEquals = {
@@ -285,9 +285,9 @@ module "cloudfront_prod" {
 #static_site
 
 module "web_hosting" {
-  source       = "./modules/web_hosting"
-  bucket_id    = module.s3_frontend_prod.bucket_id
-  bucket_arn   = module.s3_frontend_prod.bucket_arn
+  source     = "./modules/web_hosting"
+  bucket_id  = module.s3_frontend_prod.bucket_id
+  bucket_arn = module.s3_frontend_prod.bucket_arn
   # bucket_name  = module.s3_frontend_prod.bucket_name
   environment  = var.environment
   project_name = var.project_name
@@ -371,7 +371,7 @@ resource "aws_route53_record" "frontend" {
 # PostgreSQL (RDS)
 resource "aws_route53_record" "rds_endpoint" {
   zone_id = aws_route53_zone.main.zone_id
-  name    = "pg-db.${var.domain_name}"                  # 예: pg-db.goteego.store
+  name    = "pg-db.${var.domain_name}" # 예: pg-db.goteego.store
   type    = "CNAME"
   ttl     = 300
   records = [module.rds_postgresql.db_instance_endpoint] # RDS 모듈 output
@@ -380,16 +380,16 @@ resource "aws_route53_record" "rds_endpoint" {
 # MongoDB (DocumentDB)
 resource "aws_route53_record" "mongodb_endpoint" {
   zone_id = aws_route53_zone.main.zone_id
-  name    = "mongo-db.${var.domain_name}"                # 예: mongo-db.goteego.store
+  name    = "mongo-db.${var.domain_name}" # 예: mongo-db.goteego.store
   type    = "CNAME"
   ttl     = 300
-  records = [module.documentdb.docdb_cluster_endpoint]   # DocumentDB 모듈 output
+  records = [module.documentdb.docdb_cluster_endpoint] # DocumentDB 모듈 output
 }
 
 # Redis (ElastiCache)
 resource "aws_route53_record" "redis_endpoint" {
   zone_id = aws_route53_zone.main.zone_id
-  name    = "redis.${var.domain_name}"                   # 예: redis.goteego.store
+  name    = "redis.${var.domain_name}" # 예: redis.goteego.store
   type    = "CNAME"
   ttl     = 300
   records = [module.elasticache.primary_endpoint_address] # ElastiCache 모듈 output
@@ -410,23 +410,23 @@ resource "aws_route53_record" "redis_endpoint" {
 # elasticache ==========================
 #test
 module "elasticache" {
-  source = "./modules/elasticache"
-  project_name        = var.project_name
-  environment         = var.environment
-  subnet_ids          = module.vpc.elasticache_private_subnets
-  security_group_ids  = [module.vpc.elasticache_sg_id]
-  node_type           = "cache.t3.micro"
-  num_cache_nodes     = 1
-  redis_auth_token    = var.redis_auth_token
-  common_tags         = var.common_tags
-  depends_on = [module.eks]
+  source             = "./modules/elasticache"
+  project_name       = var.project_name
+  environment        = var.environment
+  subnet_ids         = module.vpc.elasticache_private_subnets
+  security_group_ids = [module.vpc.elasticache_sg_id]
+  node_type          = "cache.t3.micro"
+  num_cache_nodes    = 1
+  redis_auth_token   = var.redis_auth_token
+  common_tags        = var.common_tags
+  depends_on         = [module.eks]
 }
 # redis_auth_parameter
 resource "aws_ssm_parameter" "redis_auth_token" {
   name  = "/${var.project_name}/${var.environment}/redis_auth_token"
-  type  = "SecureString"  # 보안 문자열로 저장
-  value = var.redis_auth_token 
-  tags = var.common_tags
+  type  = "SecureString" # 보안 문자열로 저장
+  value = var.redis_auth_token
+  tags  = var.common_tags
 
 }
 # ========================================
@@ -465,8 +465,8 @@ resource "kubernetes_namespace" "argocd" {
 module "cert_manager_irsa" {
   source = "./modules/irsa"
 
-  name      = "cert-manager"
-  namespace = kubernetes_namespace.cert_manager.metadata[0].name
+  name                      = "cert-manager"
+  namespace                 = kubernetes_namespace.cert_manager.metadata[0].name
   cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
   cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
   project_name              = var.project_name
@@ -516,32 +516,11 @@ module "alb" {
 }
 
 # cert-manager Helm chart
-resource "helm_release" "cert_manager" {
-  name       = "cert-manager"
-  repository = "https://charts.jetstack.io"
-  chart      = "cert-manager"
-  version    = "v1.13.3"
-  namespace  = kubernetes_namespace.cert_manager.metadata[0].name
-
-  set {
-    name  = "installCRDs"
-    value = "true"
-  }
-
-  set {
-    name  = "serviceAccount.create"
-    value = "false" # IRSA 모듈에서 생성한 서비스 어카운트 사용
-  }
-
-  set {
-    name  = "serviceAccount.name"
-    value = module.cert_manager_irsa.service_account_name
-  }
-
-  set {
-    name  = "securityContext.fsGroup"
-    value = "1001"
-  }
+module "certmanager" {
+  source               = "./modules/certmanager"
+  namespace            = kubernetes_namespace.cert_manager.metadata[0].name
+  chart_version        = "v1.13.3"
+  service_account_name = module.cert_manager_irsa.service_account_name
 
   depends_on = [
     module.cert_manager_irsa,
@@ -552,106 +531,16 @@ resource "helm_release" "cert_manager" {
 # ALB Controller 배포 후 대기 시간
 resource "time_sleep" "wait_for_alb_controller" {
   depends_on = [module.alb]
-  
-  create_duration = "900s"  # 900초 대기 (ALB Controller 완전 초기화 대기)
+
+  create_duration = "900s" # 900초 대기 (ALB Controller 완전 초기화 대기)
 }
 
 # ArgoCD Helm chart
-resource "helm_release" "argocd" {
-  name       = "argocd"
-  repository = "https://argoproj.github.io/argo-helm"
-  chart      = "argo-cd"
-  version    = "8.2.5"
-  namespace  = kubernetes_namespace.argocd.metadata[0].name
-  timeout    = 900  # 15분으로 타임아웃 증가
-
-  # ArgoCD Server 설정
-  set {
-    name  = "server.service.type"
-    value = "ClusterIP"
-  }
-
-  set {
-    name  = "server.extraArgs[0]"
-    value = "--insecure" # HTTPS 리다이렉트 비활성화 (ALB에서 처리)
-  }
-
-  # ArgoCD Config
-  set {
-    name  = "configs.params.server\\.insecure"
-    value = "true"
-  }
-
-  # RBAC 설정 (기본값을 사용하여 에러 방지)
-  set {
-    name  = "configs.rbac.policy\\.default"
-    value = "role:readonly"
-  }
-
-  # 리소스 설정 (타임아웃 방지)
-  set {
-    name  = "server.resources.requests.cpu"
-    value = "100m"
-  }
-
-  set {
-    name  = "server.resources.requests.memory"
-    value = "128Mi"
-  }
-
-  set {
-    name  = "server.resources.limits.cpu"
-    value = "200m"
-  }
-
-  set {
-    name  = "server.resources.limits.memory"
-    value = "256Mi"
-  }
-
-  # 레플리카 수 조정
-  set {
-    name  = "server.replicaCount"
-    value = "1"
-  }
-
-  # Enable Ingress (ALB)
-  set {
-    name  = "server.ingress.enabled"
-    value = "true"
-  }
-
-  # Ingress class and ALB annotations
-  set {
-    name  = "server.ingress.ingressClassName"
-    value = "alb"
-  }
-
-  set {
-    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/scheme"
-    value = "internet-facing"
-  }
-
-  set {
-    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/target-type"
-    value = "ip"
-  }
-
-  set {
-    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/listen-ports"
-    value = "[{\"HTTP\":80}]"
-  }
-
-  # Hosts and TLS (default to prod host; adjust via tfvars if needed)
-  set {
-    name  = "server.ingress.paths[0].path"
-    value = "/"
-  }
-
-  set {
-    name  = "server.ingress.paths[0].pathType"
-    value = "Prefix"
-  }
+module "argocd" {
+  source        = "./modules/argocd"
+  namespace     = kubernetes_namespace.argocd.metadata[0].name
+  chart_version = "8.2.5" # 버전관리는 루트에서 모듈은 에러방지
+  timeout       = 900     # 900초 대기 (EKS 설치 대기)
 
   depends_on = [
     module.eks,
@@ -663,22 +552,7 @@ resource "helm_release" "argocd" {
 # EKS 클러스터와 Helm 차트는 Terraform으로 자동 배포됩니다
 # GitOps 설정만 수동으로 진행하면 됩니다
 
-# Output ArgoCD information
-output "argocd_server_url" {
-  description = "ArgoCD Server URL (LoadBalancer)"
-  value       = "Check LoadBalancer external IP: kubectl get svc argocd-server -n argocd"
-}
 
-output "argocd_admin_password" {
-  description = "ArgoCD Admin Password Command"
-  value       = "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
-  sensitive   = true
-}
-
-output "cert_manager_status" {
-  description = "cert-manager installation status"
-  value       = "cert-manager installed with Route53 DNS challenge support"
-}
 
 # ALB Module Outputs
 output "alb_controller_role_arn" {
@@ -700,8 +574,8 @@ output "alb_controller_status" {
 module "github_oidc_roles" {
   source = "./modules/github_oidc_roles"
 
-  github_org               = "CLD-3rd"
-  github_repo              = "final-team2-frontend"
-  s3_bucket_name           = module.s3_frontend_prod.bucket_name
+  github_org                 = "CLD-3rd"
+  github_repo                = "final-team2-frontend"
+  s3_bucket_name             = module.s3_frontend_prod.bucket_name
   cloudfront_distribution_id = module.cloudfront_prod.distribution_id
 }

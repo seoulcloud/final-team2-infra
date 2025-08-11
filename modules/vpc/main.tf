@@ -36,9 +36,9 @@ resource "aws_subnet" "eks_private" {
   availability_zone = local.azs[count.index]
 
   tags = merge(var.common_tags, {
-    Name = "${var.project_name}-${var.environment}-EKS-private-subnet-${substr(local.azs[count.index], -1, 1)}"
-    Type = "EKS-Private-Subnet"
-    "kubernetes.io/role/internal-elb" = "1" # 내부서비스용 LB는 이서브넷에 생성
+    Name                                                                   = "${var.project_name}-${var.environment}-EKS-private-subnet-${substr(local.azs[count.index], -1, 1)}"
+    Type                                                                   = "EKS-Private-Subnet"
+    "kubernetes.io/role/internal-elb"                                      = "1" # 내부서비스용 LB는 이서브넷에 생성
     "kubernetes.io/cluster/${var.project_name}-${var.environment}-cluster" = "owned"
   })
 }
@@ -52,8 +52,8 @@ resource "aws_subnet" "postgresql_private" {
   availability_zone = local.azs[count.index]
 
   tags = merge(var.common_tags, {
-    Name = "${var.project_name}-${var.environment}-PostgreSQL-private-subnet-${substr(local.azs[count.index], -1, 1)}"
-    Type = "PostgreSQL-Private-Subnet"
+    Name     = "${var.project_name}-${var.environment}-PostgreSQL-private-subnet-${substr(local.azs[count.index], -1, 1)}"
+    Type     = "PostgreSQL-Private-Subnet"
     Database = "PostgreSQL"
   })
 }
@@ -61,7 +61,7 @@ resource "aws_subnet" "postgresql_private" {
 # DB Subnet Group for RDS
 resource "aws_db_subnet_group" "this" {
   name       = "${var.project_name}-${var.environment}-db-subnet-group"
-  subnet_ids = aws_subnet.postgresql_private[*].id  # 이미 있는 Subnet들
+  subnet_ids = aws_subnet.postgresql_private[*].id # 이미 있는 Subnet들
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-db-subnet-group"
     Type = "DB-Subnet-Group"
@@ -77,8 +77,8 @@ resource "aws_subnet" "mongodb_private" {
   availability_zone = local.azs[count.index]
 
   tags = merge(var.common_tags, {
-    Name = "${var.project_name}-${var.environment}-MongoDB-private-subnet-${substr(local.azs[count.index], -1, 1)}"
-    Type = "MongoDB-Private-Subnet"
+    Name     = "${var.project_name}-${var.environment}-MongoDB-private-subnet-${substr(local.azs[count.index], -1, 1)}"
+    Type     = "MongoDB-Private-Subnet"
     Database = "MongoDB"
   })
 }
@@ -86,7 +86,7 @@ resource "aws_subnet" "mongodb_private" {
 # Subnet Group for DocumentDB
 resource "aws_docdb_subnet_group" "this" {
   name       = "${var.project_name}-${var.environment}-docdb-subnet-group"
-  subnet_ids = aws_subnet.mongodb_private[*].id  # MongoDB용 프라이빗 서브넷 사용
+  subnet_ids = aws_subnet.mongodb_private[*].id # MongoDB용 프라이빗 서브넷 사용
 
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-docdb-subnet-group"
@@ -103,17 +103,17 @@ resource "aws_subnet" "elasticache_private" {
   availability_zone = local.azs[count.index]
 
   tags = merge(var.common_tags, {
-    Name = "${var.project_name}-${var.environment}-Elasticache-private-subnet-${substr(local.azs[count.index], -1, 1)}"
-    Type = "Elasticache-Private-Subnet"
+    Name     = "${var.project_name}-${var.environment}-Elasticache-private-subnet-${substr(local.azs[count.index], -1, 1)}"
+    Type     = "Elasticache-Private-Subnet"
     Database = "Elasticache"
   })
 }
 
 # Elastic IPs for NAT Gateways
 resource "aws_eip" "nat" {
-  count = 2  # One for each AZ
+  count = 2 # One for each AZ
 
-  domain = "vpc"
+  domain     = "vpc"
   depends_on = [aws_internet_gateway.main]
 
   tags = merge(var.common_tags, {
@@ -127,14 +127,14 @@ resource "aws_subnet" "public" {
   count = 2
 
   vpc_id                  = aws_vpc.main.id
-  cidr_block             = cidrsubnet(var.vpc_cidr, var.public_subnet_newbits, count.index)
-  availability_zone      = local.azs[count.index]
+  cidr_block              = cidrsubnet(var.vpc_cidr, var.public_subnet_newbits, count.index)
+  availability_zone       = local.azs[count.index]
   map_public_ip_on_launch = true
 
   tags = merge(var.common_tags, {
-    Name = "${var.project_name}-${var.environment}-public-subnet-${count.index + 1}"
-    Type = "Public-Subnet"
-    "kubernetes.io/role/elb" = "1"
+    Name                                                                   = "${var.project_name}-${var.environment}-public-subnet-${count.index + 1}"
+    Type                                                                   = "Public-Subnet"
+    "kubernetes.io/role/elb"                                               = "1"
     "kubernetes.io/cluster/${var.project_name}-${var.environment}-cluster" = "owned"
   })
 }
@@ -230,20 +230,20 @@ resource "aws_route_table_association" "elasticache_private" {
 resource "aws_vpc_endpoint" "ssm" {
   count = var.enable_ssm_endpoints ? 1 : 0 # 조건부생성 true | false
 
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.ssm"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.eks_private[*].id
-  security_group_ids  = [aws_security_group.ssm_endpoint[0].id]
-  
+  vpc_id             = aws_vpc.main.id
+  service_name       = "com.amazonaws.${var.aws_region}.ssm"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = aws_subnet.eks_private[*].id
+  security_group_ids = [aws_security_group.ssm_endpoint[0].id]
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
+        Effect    = "Allow"
         Principal = "*"
-        Action = var.ssm_actions
-        Resource = "*"
+        Action    = var.ssm_actions
+        Resource  = "*"
       }
     ]
   })
@@ -257,11 +257,11 @@ resource "aws_vpc_endpoint" "ssm" {
 resource "aws_vpc_endpoint" "ssm_messages" {
   count = var.enable_ssm_endpoints ? 1 : 0
 
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.ssmmessages"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.eks_private[*].id
-  security_group_ids  = [aws_security_group.ssm_endpoint[0].id]
+  vpc_id             = aws_vpc.main.id
+  service_name       = "com.amazonaws.${var.aws_region}.ssmmessages"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = aws_subnet.eks_private[*].id
+  security_group_ids = [aws_security_group.ssm_endpoint[0].id]
 
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-ssm-messages-endpoint"
@@ -272,11 +272,11 @@ resource "aws_vpc_endpoint" "ssm_messages" {
 resource "aws_vpc_endpoint" "ec2_messages" {
   count = var.enable_ssm_endpoints ? 1 : 0
 
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.ec2messages"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.eks_private[*].id
-  security_group_ids  = [aws_security_group.ssm_endpoint[0].id]
+  vpc_id             = aws_vpc.main.id
+  service_name       = "com.amazonaws.${var.aws_region}.ec2messages"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = aws_subnet.eks_private[*].id
+  security_group_ids = [aws_security_group.ssm_endpoint[0].id]
 
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-ec2-messages-endpoint"
@@ -315,7 +315,7 @@ resource "aws_security_group" "ssm_endpoint" {
   lifecycle {
     create_before_destroy = true
   }
-} 
+}
 
 # Security Group for PostgreSQL 
 
@@ -328,7 +328,7 @@ resource "aws_security_group" "postgresql" {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]  # 내부에서만 접근 허용
+    cidr_blocks = [var.vpc_cidr] # 내부에서만 접근 허용
   }
 
   egress {

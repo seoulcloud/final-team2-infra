@@ -20,12 +20,12 @@ resource "aws_cloudwatch_metric_alarm" "this" {
   statistic           = var.statistic
   threshold           = var.threshold
 
-  alarm_description   = <<EOT
+  alarm_description = <<EOT
 ALERT: ${var.metric_name} exceeded threshold of ${var.threshold}.
 Suggested actions: ${var.action_description}
 EOT
 
-  alarm_actions       = [aws_sns_topic.this.arn]
-  dimensions          = var.dimensions
-  tags                = var.tags
+  alarm_actions = [aws_sns_topic.this.arn]
+  dimensions    = var.dimensions
+  tags          = var.tags
 }

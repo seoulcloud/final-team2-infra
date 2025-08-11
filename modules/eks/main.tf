@@ -107,7 +107,7 @@ resource "aws_iam_role_policy_attachment" "node_group_registry_policy" {
 # SSM Access for EKS Nodes
 resource "aws_iam_role_policy_attachment" "node_group_ssm_policy" {
   count = var.enable_ssm_access ? 1 : 0
-  
+
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   role       = aws_iam_role.node_group.name
 }
@@ -121,7 +121,7 @@ resource "aws_iam_role_policy_attachment" "node_group_ssm_policy" {
 # Additional SSM permissions for EKS nodes
 resource "aws_iam_role_policy" "node_group_ssm_custom" {
   count = var.enable_ssm_access ? 1 : 0
-  
+
   name = "${var.project_name}-${var.environment}-eks-node-ssm-custom"
   role = aws_iam_role.node_group.id
 
@@ -345,10 +345,10 @@ resource "aws_security_group" "node_group" {
 
   # Allow nodes to communicate with each other
   ingress {
-    from_port = 0
-    to_port   = var.high_port
-    protocol  = "tcp"
-    self      = true
+    from_port   = 0
+    to_port     = var.high_port
+    protocol    = "tcp"
+    self        = true
     description = "Allow nodes to communicate with each other"
   }
 
@@ -380,7 +380,7 @@ resource "aws_security_group" "node_group" {
   }
 }
 
-  # Security group rules for cluster to communicate with nodes
+# Security group rules for cluster to communicate with nodes
 resource "aws_security_group_rule" "cluster_to_node" {
   type                     = "ingress"
   from_port                = 0
@@ -452,7 +452,7 @@ resource "aws_eks_node_group" "main" {
   instance_types = each.value.instance_types
   ami_type       = each.value.ami_type
   capacity_type  = each.value.capacity_type
-  
+
 
   # Scaling configuration
   scaling_config {
@@ -480,7 +480,7 @@ resource "aws_eks_node_group" "main" {
     aws_iam_role_policy_attachment.node_group_registry_policy,
     aws_iam_role_policy_attachment.node_group_ssm_policy,
     aws_launch_template.node_group,  # Launch Template 의존성 추가
-    aws_eks_access_entry.node_group,  # AccessEntry 생성 후 노드 그룹 생성
+    aws_eks_access_entry.node_group, # AccessEntry 생성 후 노드 그룹 생성
   ]
 
   tags = merge(var.common_tags, {
@@ -506,10 +506,10 @@ resource "aws_launch_template" "node_group" {
 
   # User data to ensure SSM agent is running
   user_data = base64encode(templatefile("${path.module}/templates/user-data.sh.tpl", {
-    cluster_name        = aws_eks_cluster.main.name
-    cluster_endpoint    = aws_eks_cluster.main.endpoint
-    cluster_ca          = aws_eks_cluster.main.certificate_authority[0].data
-    enable_ssm_access   = var.enable_ssm_access
+    cluster_name      = aws_eks_cluster.main.name
+    cluster_endpoint  = aws_eks_cluster.main.endpoint
+    cluster_ca        = aws_eks_cluster.main.certificate_authority[0].data
+    enable_ssm_access = var.enable_ssm_access
   }))
 
   # Instance metadata options
@@ -528,8 +528,8 @@ resource "aws_launch_template" "node_group" {
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
-      volume_size = each.value.disk_size
-      volume_type = "gp3"
+      volume_size           = each.value.disk_size
+      volume_type           = "gp3"
       delete_on_termination = true
     }
   }
@@ -564,10 +564,10 @@ resource "aws_launch_template" "node_group" {
 resource "aws_eks_addon" "vpc_cni" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "vpc-cni"
-  
+
   resolve_conflicts_on_create = var.addon_resolve_conflicts
   resolve_conflicts_on_update = var.addon_resolve_conflicts
-  
+
   tags = merge(var.common_tags, {
     Name = "${var.cluster_name}-vpc-cni"
     Type = "EKS-Addon"
@@ -577,15 +577,15 @@ resource "aws_eks_addon" "vpc_cni" {
 resource "aws_eks_addon" "coredns" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "coredns"
-  
+
   resolve_conflicts_on_create = var.addon_resolve_conflicts
   resolve_conflicts_on_update = var.addon_resolve_conflicts
-  
+
   depends_on = [
     aws_eks_node_group.main,
-    aws_eks_access_entry.node_group,  # AccessEntry 생성 후 Add-on 생성
+    aws_eks_access_entry.node_group, # AccessEntry 생성 후 Add-on 생성
   ]
-  
+
   tags = merge(var.common_tags, {
     Name = "${var.cluster_name}-coredns"
     Type = "EKS-Addon"
@@ -595,10 +595,10 @@ resource "aws_eks_addon" "coredns" {
 resource "aws_eks_addon" "kube_proxy" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "kube-proxy"
-  
+
   resolve_conflicts_on_create = var.addon_resolve_conflicts
   resolve_conflicts_on_update = var.addon_resolve_conflicts
-  
+
   tags = merge(var.common_tags, {
     Name = "${var.cluster_name}-kube-proxy"
     Type = "EKS-Addon"
@@ -609,17 +609,17 @@ resource "aws_eks_addon" "kube_proxy" {
 resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "aws-ebs-csi-driver"
-  
+
   service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
-  
+
   resolve_conflicts_on_create = var.addon_resolve_conflicts
   resolve_conflicts_on_update = var.addon_resolve_conflicts
-  
+
   depends_on = [
     aws_eks_node_group.main,
-    aws_eks_access_entry.node_group,  # AccessEntry 생성 후 Add-on 생성
+    aws_eks_access_entry.node_group, # AccessEntry 생성 후 Add-on 생성
   ]
-  
+
   tags = merge(var.common_tags, {
     Name = "${var.cluster_name}-ebs-csi-driver"
     Type = "EKS-Addon"
@@ -630,11 +630,11 @@ resource "aws_eks_addon" "ebs_csi_driver" {
 resource "aws_eks_access_entry" "node_group" {
   cluster_name  = aws_eks_cluster.main.name
   principal_arn = aws_iam_role.node_group.arn
-  type          = "EC2_LINUX"  # STANDARD 대신 EC2_LINUX 사용 (기본 권한만)
+  type          = "EC2_LINUX" # STANDARD 대신 EC2_LINUX 사용 (기본 권한만)
 
   depends_on = [
     aws_eks_cluster.main,
-    aws_iam_openid_connect_provider.eks,  # OIDC Provider 생성 후 AccessEntry 생성
+    aws_iam_openid_connect_provider.eks, # OIDC Provider 생성 후 AccessEntry 생성
   ]
 
   # EKS 클러스터가 완전히 준비될 때까지 대기 (클러스터 생성 9분 소요)
@@ -676,12 +676,12 @@ resource "aws_eks_access_entry" "node_group" {
 # EKS Access Entry for Cluster Admin (Terraform Cloud 실제 자격증명 사용)
 resource "aws_eks_access_entry" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = data.aws_caller_identity.current.arn  # Terraform Cloud 실제 자격증명
+  principal_arn = data.aws_caller_identity.current.arn # Terraform Cloud 실제 자격증명
   type          = "STANDARD"
 
   depends_on = [
     aws_eks_cluster.main,
-    aws_iam_openid_connect_provider.eks  # OIDC Provider 생성 후 AccessEntry 생성
+    aws_iam_openid_connect_provider.eks # OIDC Provider 생성 후 AccessEntry 생성
   ]
 
   # EKS 클러스터가 완전히 준비될 때까지 대기 (클러스터 생성 9분 소요)
@@ -693,8 +693,8 @@ resource "aws_eks_access_entry" "cluster_admin" {
 # EKS Access Policy for Cluster Admin (system:masters group access)
 resource "aws_eks_access_policy_association" "cluster_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = data.aws_caller_identity.current.arn  # Terraform Cloud 실제 자격증명
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"  # 올바른 정책 ARN
+  principal_arn = data.aws_caller_identity.current.arn                                 # Terraform Cloud 실제 자격증명
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy" # 올바른 정책 ARN
 
   access_scope {
     type = "cluster"
