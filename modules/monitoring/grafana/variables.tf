@@ -20,3 +20,16 @@ variable "grafana_admin_password" {
   type        = string
   sensitive   = true
 }
+
+variable "alb_sg_id" {
+  description = "ALB SG ID"
+}
+
+variable "node_sg_id" {
+  description = "EKS NodeGroup SG ID"
+}
+
+variable "grafana_target_port" {
+  description = "Grafana 서비스 포트"
+  default     = 3000
+}

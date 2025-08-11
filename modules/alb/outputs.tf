@@ -55,3 +55,8 @@ output "helm_values" {
     vpcId  = var.vpc_id
   }
 } 
+
+output "alb_sg_id" {
+  description = "ALB(Security Group) ID"
+  value       = aws_security_group.alb.id
+}
