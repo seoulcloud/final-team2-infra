@@ -79,10 +79,10 @@ output "node_group_iam_role_arn" {
   value       = aws_iam_role.node_group.arn
 }
 
-output "ebs_csi_driver_iam_role_arn" {
-  description = "IAM role ARN of the EBS CSI driver"
-  value       = aws_iam_role.ebs_csi_driver.arn
-}
+# output "ebs_csi_driver_iam_role_arn" {
+#   description = "IAM role ARN of the EBS CSI driver"
+#   value       = aws_iam_role.ebs_csi_driver.arn
+# }
 
 # Connection Information
 output "kubectl_config" {
@@ -134,10 +134,10 @@ output "addon_status" {
       addon_version = aws_eks_addon.kube_proxy.addon_version
       arn           = aws_eks_addon.kube_proxy.arn
     }
-    ebs_csi_driver = {
-      addon_name    = aws_eks_addon.ebs_csi_driver.addon_name
-      addon_version = aws_eks_addon.ebs_csi_driver.addon_version
-      arn           = aws_eks_addon.ebs_csi_driver.arn
-    }
+    # ebs_csi_driver = {
+    #   addon_name    = aws_eks_addon.ebs_csi_driver.addon_name
+    #   addon_version = aws_eks_addon.ebs_csi_driver.addon_version
+    #   arn           = aws_eks_addon.ebs_csi_driver.arn
+    # }
   }
 }
