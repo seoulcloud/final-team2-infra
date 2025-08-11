@@ -1,5 +1,19 @@
 service:
-  type: LoadBalancer
+  type: ClusterIP
+
+ingress:
+  enabled: true
+  ingressClassName: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/backend-protocol: "HTTP"
+    alb.ingress.kubernetes.io/group.name: "monitoring"
+  hosts:
+    - grafana.goteego.store
+  path: /
+  pathType: Prefix
+  tls: [] # 나중에 HTTPS 쓸 때 ACM 추가
 
 datasources:
   datasources.yaml:
