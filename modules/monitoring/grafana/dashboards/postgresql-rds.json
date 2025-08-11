@@ -1,0 +1,173 @@
+{
+  "title": "PostgreSQL - RDS Overview",
+  "schemaVersion": 38,
+  "version": 2,
+  "timezone": "browser",
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(pg_up, instance)",
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Instance Up",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        { "expr": "max(pg_up{instance=\"$instance\"})", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Connections",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green" },
+              { "value": 100, "color": "orange" },
+              { "value": 200, "color": "red" }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(pg_stat_activity_count{instance=\"$instance\"})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Cache Hit Ratio",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "orange", "value": 0.9 },
+              { "color": "green", "value": 0.98 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "avg(pg_stat_database_blks_hit{instance=\"$instance\"} / (pg_stat_database_blks_hit{instance=\"$instance\"} + pg_stat_database_blks_read{instance=\"$instance\"}))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "TPS",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "datasource": "Prometheus",
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "expr": "sum(rate(pg_stat_database_xact_commit{instance=\"$instance\"}[$__rate_interval]) + rate(pg_stat_database_xact_rollback{instance=\"$instance\"][$__rate_interval]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Locks",
+      "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green" },
+              { "value": 10, "color": "orange" },
+              { "value": 50, "color": "red" }
+            ]
+          }
+        }
+      },
+      "targets": [
+        { "expr": "sum(pg_locks_count{instance=\"$instance\"})", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Connections by DB",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum by (datname) (pg_stat_activity_count{instance=\"$instance\"})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Cache Hit Ratio (Trend)",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "avg by (instance) (pg_stat_database_blks_hit{instance=\"$instance\"} / (pg_stat_database_blks_hit{instance=\"$instance\"} + pg_stat_database_blks_read{instance=\"$instance\"}))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Transactions per second",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum by (datname) (rate(pg_stat_database_xact_commit{instance=\"$instance\"}[$__rate_interval]) + rate(pg_stat_database_xact_rollback{instance=\"$instance\"}[$__rate_interval]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Locks by Mode",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum by (mode) (pg_locks_count{instance=\"$instance\"})",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

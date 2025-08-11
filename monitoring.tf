@@ -32,6 +32,8 @@ module "grafana" {
   source                 = "./modules/monitoring/grafana"
   namespace              = "monitoring"
   chart_version          = "7.3.9"
+  alb_sg_id    = module.alb.alb_sg_id
+  node_sg_id   = module.eks.node_group_security_group_id
   depends_on_module      = module.prometheus
   grafana_admin_password = var.grafana_admin_password
 }
