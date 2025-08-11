@@ -612,18 +612,24 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   
   service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
   
-  resolve_conflicts_on_create = var.addon_resolve_conflicts
-  resolve_conflicts_on_update = var.addon_resolve_conflicts
+  resolve_conflicts_on_create = "PRESERVE"
+  resolve_conflicts_on_update = "PRESERVE"
   
   depends_on = [
     aws_eks_node_group.main,
-    aws_eks_access_entry.node_group,  # AccessEntry 생성 후 Add-on 생성
+    aws_eks_access_entry.cluster_admin,  # Cluster Admin AccessEntry 사용
   ]
   
   tags = merge(var.common_tags, {
     Name = "${var.cluster_name}-ebs-csi-driver"
     Type = "EKS-Addon"
   })
+
+  # EBS CSI Driver는 설치에 시간이 오래 걸림
+  timeouts {
+    create = "30m"
+    update = "30m"
+  }
 }
 
 # EKS Access Entry for Node Group IAM Role (관리자 권한 제거)
