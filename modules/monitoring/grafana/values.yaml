@@ -10,10 +10,11 @@ ingress:
     alb.ingress.kubernetes.io/backend-protocol: "HTTP"
     alb.ingress.kubernetes.io/group.name: "monitoring"
   hosts:
-    - grafana.goteego.store
-  path: /
-  pathType: Prefix
-  tls: [] # 나중에 HTTPS 쓸 때 ACM 추가
+    - host: grafana.goteego.store
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: [] # 추후 HTTPS 시 ACM 연결
 
 datasources:
   datasources.yaml:
@@ -40,5 +41,14 @@ dashboardProviders:
         editable: true
         options:
           path: /var/lib/grafana/dashboards/default
+
+# 사이드카가 ConfigMap(라벨: grafana_dashboard=1)을 자동으로 읽어 대시보드 로드
+sidecar:
+  dashboards:
+    enabled: true
+    label: grafana_dashboard
+    labelValue: "1"
+    searchNamespace: "monitoring"
+    folder: /var/lib/grafana/dashboards/default
 
 dashboardsConfigMaps: []
