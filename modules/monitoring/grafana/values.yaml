@@ -3,18 +3,17 @@ service:
 
 ingress:
   enabled: true
+  ingressClassName: alb
   annotations:
     alb.ingress.kubernetes.io/scheme: "internet-facing"
     alb.ingress.kubernetes.io/target-type: "ip"
     alb.ingress.kubernetes.io/backend-protocol: "HTTP"
-    alb.ingress.kubernetes.io/group.name: monitoring
-  ingressClassName: alb
+    alb.ingress.kubernetes.io/group.name: "monitoring"
   hosts:
-    - host: grafana.goteego.store
-      paths:
-        - path: /
-          pathType: Prefix
-  # tls: []
+    - grafana.goteego.store
+  path: /
+  pathType: Prefix
+  tls: [] # 나중에 HTTPS 쓸 때 ACM 추가
 
 datasources:
   datasources.yaml:
