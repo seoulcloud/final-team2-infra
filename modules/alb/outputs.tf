@@ -45,7 +45,7 @@ output "helm_values" {
   value = {
     clusterName = var.cluster_name
     serviceAccount = {
-      create = false  # IRSA 모듈에서 생성했으므로 false
+      create = false # IRSA 모듈에서 생성했으므로 false
       name   = module.aws_load_balancer_controller_irsa.service_account_name
       annotations = {
         "eks.amazonaws.com/role-arn" = module.aws_load_balancer_controller_irsa.iam_role_arn

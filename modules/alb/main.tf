@@ -15,9 +15,9 @@ module "aws_load_balancer_controller_irsa" {
   project_name              = var.project_name
   environment               = var.environment
 
-  policy_arns  = [aws_iam_policy.aws_load_balancer_controller.arn]
-  common_tags  = var.common_tags
-  create_db_role = false  # ALB Controller는 DB 접근 불필요
+  policy_arns    = [aws_iam_policy.aws_load_balancer_controller.arn]
+  common_tags    = var.common_tags
+  create_db_role = false # ALB Controller는 DB 접근 불필요
 }
 
 # AWS Load Balancer Controller IAM Policy
@@ -283,8 +283,8 @@ resource "aws_security_group" "alb" {
   }
 
   tags = merge(var.common_tags, {
-    Name                                      = "${var.project_name}-${var.environment}-alb-sg"
-    Purpose                                   = "ALB-Security-Group"
+    Name                                        = "${var.project_name}-${var.environment}-alb-sg"
+    Purpose                                     = "ALB-Security-Group"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   })
 }
@@ -307,7 +307,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   chart      = "aws-load-balancer-controller"
   version    = "1.6.1"
   namespace  = "kube-system"
-  timeout    = 900  # 15분으로 타임아웃 증가
+  timeout    = 900 # 15분으로 타임아웃 증가
 
   set {
     name  = "clusterName"
@@ -316,7 +316,7 @@ resource "helm_release" "aws_load_balancer_controller" {
 
   set {
     name  = "serviceAccount.create"
-    value = "false"  # IRSA 모듈에서 생성한 서비스 어카운트 사용
+    value = "false" # IRSA 모듈에서 생성한 서비스 어카운트 사용
   }
 
   set {
