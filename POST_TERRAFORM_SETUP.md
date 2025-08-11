@@ -28,8 +28,26 @@ aws eks update-kubeconfig --region ap-northeast-2 --name goteego-team-cluster
 kubectl get nodes
 ```
 
+```bash
+# Ubuntu/Linux
+# EKS 클러스터 연결
+aws eks update-kubeconfig --region ap-northeast-2 --name goteego-team-cluster
+
+# 연결 확인
+kubectl get nodes
+```
+
 ### 1.2 클러스터 정보 확인
 ```powershell
+# 클러스터 정보
+kubectl cluster-info
+
+# 네임스페이스 확인
+kubectl get namespaces
+```
+
+```bash
+# Ubuntu/Linux
 # 클러스터 정보
 kubectl cluster-info
 
@@ -49,8 +67,27 @@ kubectl get pods -n kube-system | findstr aws-load-balancer-controller
 # 예상 결과: 1/1 Running
 ```
 
+```bash
+# Ubuntu/Linux
+# Pod 상태 확인
+kubectl get pods -n kube-system | grep aws-load-balancer-controller
+
+# 예상 결과: 1/1 Running
+```
+
 ### 2.2 Webhook 서비스 확인
 ```powershell
+# Webhook 서비스 상태
+kubectl get svc -n kube-system aws-load-balancer-webhook-service
+
+# Webhook 엔드포인트 확인
+kubectl get endpoints -n kube-system aws-load-balancer-webhook-service
+
+# 예상 결과: 엔드포인트 IP가 표시됨
+```
+
+```bash
+# Ubuntu/Linux
 # Webhook 서비스 상태
 kubectl get svc -n kube-system aws-load-balancer-webhook-service
 
@@ -68,12 +105,29 @@ kubectl get mutatingwebhookconfigurations | findstr aws-load-balancer
 # 예상 결과: aws-load-balancer-webhook
 ```
 
+```bash
+# Ubuntu/Linux
+# Mutating Admission Webhook 확인
+kubectl get mutatingwebhookconfigurations | grep aws-load-balancer
+
+# 예상 결과: aws-load-balancer-webhook
+```
+
 ---
 
 ## 3. ArgoCD 초기 설정
 
 ### 3.1 ArgoCD 상태 확인
 ```powershell
+# ArgoCD Pod 상태 확인
+kubectl get pods -n argocd
+
+# ArgoCD 서비스 확인
+kubectl get svc -n argocd argocd-server
+```
+
+```bash
+# Ubuntu/Linux
 # ArgoCD Pod 상태 확인
 kubectl get pods -n argocd
 
@@ -89,8 +143,25 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 # 비밀번호를 안전한 곳에 저장
 ```
 
+```bash
+# Ubuntu/Linux
+# 초기 Admin 비밀번호 확인
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
+# 비밀번호를 안전한 곳에 저장
+```
+
 ### 3.3 ArgoCD LoadBalancer URL 확인
 ```powershell
+# LoadBalancer URL 확인
+kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+
+# 또는
+kubectl get svc argocd-server -n argocd
+```
+
+```bash
+# Ubuntu/Linux
 # LoadBalancer URL 확인
 kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 
@@ -110,12 +181,32 @@ choco install argocd
 argocd version
 ```
 
+```bash
+# Ubuntu/Linux
+# ArgoCD CLI 설치
+curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+rm argocd-linux-amd64
+
+# 설치 확인
+argocd version
+```
+
 ---
 
 ## 4. cert-manager ClusterIssuer 설정
 
 ### 4.1 cert-manager 상태 확인
 ```powershell
+# cert-manager Pod 상태
+kubectl get pods -n cert-manager
+
+# ClusterIssuer 확인
+kubectl get clusterissuer
+```
+
+```bash
+# Ubuntu/Linux
 # cert-manager Pod 상태
 kubectl get pods -n cert-manager
 
@@ -177,12 +268,33 @@ kubectl describe clusterissuer letsencrypt-staging
 kubectl describe clusterissuer letsencrypt-prod
 ```
 
+```bash
+# Ubuntu/Linux
+# ClusterIssuer 상태 확인
+kubectl get clusterissuer
+
+# ClusterIssuer 상세 정보
+kubectl describe clusterissuer letsencrypt-staging
+kubectl describe clusterissuer letsencrypt-prod
+```
+
 ---
 
 ## 5. GitOps Repository 연결
 
 ### 5.1 ArgoCD 로그인
 ```powershell
+# ArgoCD CLI 로그인
+argocd login <LOAD_BALANCER_URL> --username admin --password <ADMIN_PASSWORD>
+
+# 또는 브라우저에서 접속
+# https://<LOAD_BALANCER_URL>
+# 사용자: admin
+# 비밀번호: <ADMIN_PASSWORD>
+```
+
+```bash
+# Ubuntu/Linux
 # ArgoCD CLI 로그인
 argocd login <LOAD_BALANCER_URL> --username admin --password <ADMIN_PASSWORD>
 
@@ -201,8 +313,23 @@ argocd repo add https://github.com/your-username/final-team2-manifest.git
 argocd repo list
 ```
 
+```bash
+# Ubuntu/Linux
+# Git Repository 추가
+argocd repo add https://github.com/your-username/final-team2-manifest.git
+
+# Repository 목록 확인
+argocd repo list
+```
+
 ### 5.3 Repository 연결 확인
 ```powershell
+# Repository 상태 확인
+argocd repo get https://github.com/your-username/final-team2-manifest.git
+```
+
+```bash
+# Ubuntu/Linux
 # Repository 상태 확인
 argocd repo get https://github.com/your-username/final-team2-manifest.git
 ```
@@ -220,6 +347,15 @@ kubectl apply -f final-team2-manifest/overlays/dev/applications/backend-api.yaml
 kubectl get application -n argocd
 ```
 
+```bash
+# Ubuntu/Linux
+# Dev 환경 Application 생성
+kubectl apply -f final-team2-manifest/overlays/dev/applications/backend-api.yaml
+
+# Application 상태 확인
+kubectl get application -n argocd
+```
+
 ### 6.2 Prod 환경 Application 배포 (필요시)
 ```powershell
 # Prod 환경 Application 생성
@@ -229,8 +365,26 @@ kubectl apply -f final-team2-manifest/overlays/prod/applications/backend-api.yam
 kubectl get application -n argocd
 ```
 
+```bash
+# Ubuntu/Linux
+# Prod 환경 Application 생성
+kubectl apply -f final-team2-manifest/overlays/prod/applications/backend-api.yaml
+
+# Application 상태 확인
+kubectl get application -n argocd
+```
+
 ### 6.3 ArgoCD에서 Application 확인
 ```powershell
+# ArgoCD CLI로 Application 확인
+argocd app list
+
+# 또는 브라우저에서 ArgoCD UI 접속
+# Applications 탭에서 확인
+```
+
+```bash
+# Ubuntu/Linux
 # ArgoCD CLI로 Application 확인
 argocd app list
 
@@ -251,6 +405,15 @@ aws route53 list-hosted-zones
 aws route53 list-resource-record-sets --hosted-zone-id <YOUR_HOSTED_ZONE_ID>
 ```
 
+```bash
+# Ubuntu/Linux
+# Hosted Zone ID 확인
+aws route53 list-hosted-zones
+
+# 레코드 확인
+aws route53 list-resource-record-sets --hosted-zone-id <YOUR_HOSTED_ZONE_ID>
+```
+
 ### 7.2 SSL 인증서 상태 확인
 ```powershell
 # Certificate 상태 확인
@@ -260,8 +423,26 @@ kubectl get certificates -A
 kubectl describe certificate -n backend-dev backend-api-cert-dev
 ```
 
+```bash
+# Ubuntu/Linux
+# Certificate 상태 확인
+kubectl get certificates -A
+
+# Certificate 상세 정보
+kubectl describe certificate -n backend-dev backend-api-cert-dev
+```
+
 ### 7.3 도메인 접속 테스트
 ```powershell
+# Dev 환경 도메인 테스트
+curl -I https://api-dev.yourdomain.com
+
+# Prod 환경 도메인 테스트
+curl -I https://api.yourdomain.com
+```
+
+```bash
+# Ubuntu/Linux
 # Dev 환경 도메인 테스트
 curl -I https://api-dev.yourdomain.com
 
@@ -285,6 +466,18 @@ kubectl get svc -A
 kubectl get ingress -A
 ```
 
+```bash
+# Ubuntu/Linux
+# 모든 Pod 상태 확인
+kubectl get pods -A
+
+# 모든 Service 상태 확인
+kubectl get svc -A
+
+# 모든 Ingress 상태 확인
+kubectl get ingress -A
+```
+
 ### 8.2 ArgoCD Application 동기화
 ```powershell
 # Application 동기화
@@ -294,8 +487,26 @@ argocd app sync backend-api-dev
 argocd app get backend-api-dev
 ```
 
+```bash
+# Ubuntu/Linux
+# Application 동기화
+argocd app sync backend-api-dev
+
+# 동기화 상태 확인
+argocd app get backend-api-dev
+```
+
 ### 8.3 로그 확인
 ```powershell
+# Backend API 로그 확인
+kubectl logs -n backend-dev deployment/backend-api-dev
+
+# ALB Controller 로그 확인
+kubectl logs -n kube-system deployment/aws-load-balancer-controller
+```
+
+```bash
+# Ubuntu/Linux
 # Backend API 로그 확인
 kubectl logs -n backend-dev deployment/backend-api-dev
 
@@ -318,8 +529,26 @@ kubectl logs -n kube-system deployment/aws-load-balancer-controller
 kubectl describe pod -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
 ```
 
+```bash
+# Ubuntu/Linux
+# Pod 로그 확인
+kubectl logs -n kube-system deployment/aws-load-balancer-controller
+
+# Pod 상세 정보 확인
+kubectl describe pod -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
+```
+
 #### 2. Webhook 엔드포인트 없음
 ```powershell
+# ALB Controller 재시작
+kubectl rollout restart deployment aws-load-balancer-controller -n kube-system
+
+# 엔드포인트 대기
+kubectl wait --for=condition=ready endpoints/aws-load-balancer-webhook-service -n kube-system --timeout=300s
+```
+
+```bash
+# Ubuntu/Linux
 # ALB Controller 재시작
 kubectl rollout restart deployment aws-load-balancer-controller -n kube-system
 
@@ -336,8 +565,26 @@ kubectl logs -n cert-manager deployment/cert-manager
 kubectl describe clusterissuer letsencrypt-staging
 ```
 
+```bash
+# Ubuntu/Linux
+# cert-manager 로그 확인
+kubectl logs -n cert-manager deployment/cert-manager
+
+# ClusterIssuer 상태 확인
+kubectl describe clusterissuer letsencrypt-staging
+```
+
 #### 4. ArgoCD Application 동기화 실패
 ```powershell
+# Application 이벤트 확인
+kubectl describe application backend-api-dev -n argocd
+
+# Repository 연결 확인
+argocd repo list
+```
+
+```bash
+# Ubuntu/Linux
 # Application 이벤트 확인
 kubectl describe application backend-api-dev -n argocd
 
