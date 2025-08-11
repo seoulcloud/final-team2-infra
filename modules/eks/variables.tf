@@ -63,12 +63,12 @@ variable "node_groups" {
   description = "EKS node groups configuration"
   type = map(object({
     instance_types = list(string)
-    min_size      = number
-    max_size      = number
-    desired_size  = number
-    disk_size     = number
-    ami_type      = string
-    capacity_type = string
+    min_size       = number
+    max_size       = number
+    desired_size   = number
+    disk_size      = number
+    ami_type       = string
+    capacity_type  = string
   }))
   default = {}
 }
@@ -122,14 +122,14 @@ variable "cluster_log_types" {
 variable "cluster_endpoint_config" {
   description = "EKS cluster endpoint configuration"
   type = object({
-    private_access = bool
-    public_access  = bool
+    private_access      = bool
+    public_access       = bool
     public_access_cidrs = list(string)
   })
   default = {
-    private_access = true
-    public_access  = true
-    public_access_cidrs = ["0.0.0.0/0"]  # TODO: Restrict this in production
+    private_access      = true
+    public_access       = true
+    public_access_cidrs = ["0.0.0.0/0"] # TODO: Restrict this in production
   }
 }
 

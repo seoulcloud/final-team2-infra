@@ -94,7 +94,7 @@ variable "common_tags" {
   description = "Common tags for all resources"
   type        = map(string)
   default     = {}
-} 
+}
 variable "eks_node_security_group" {
   description = "EKS node group security group ID to allow inbound in Elasticache SG"
   type        = string

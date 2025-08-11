@@ -20,8 +20,8 @@ resource "aws_iam_role" "frontend_deploy_role" {
         Condition = {
           StringLike = {
             "token.actions.githubusercontent.com:sub" = [
-                "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main",
-                "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/dev"
+              "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main",
+              "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/dev"
             ]
           }
         }
@@ -51,8 +51,8 @@ resource "aws_iam_policy" "frontend_deploy_policy" {
         ]
       },
       {
-        Effect = "Allow",
-        Action = ["cloudfront:CreateInvalidation"],
+        Effect   = "Allow",
+        Action   = ["cloudfront:CreateInvalidation"],
         Resource = "arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/${var.cloudfront_distribution_id}"
       }
     ]

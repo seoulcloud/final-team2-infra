@@ -14,13 +14,13 @@ variable "s3_bucket_domain_name" {
 }
 
 variable "default_root_object" {
-  type        = string
-  default     = "index.html"
+  type    = string
+  default = "index.html"
 }
 
 variable "viewer_protocol_policy" {
-  type        = string
-  default     = "redirect-to-https"
+  type    = string
+  default = "redirect-to-https"
 }
 
 variable "cloudfront_distribution_arn" {

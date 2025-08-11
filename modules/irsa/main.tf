@@ -9,7 +9,7 @@ data "aws_region" "current" {}
 # IAM Policy for cert-manager (Route53 DNS challenge)
 resource "aws_iam_policy" "cert_manager_route53" {
   count = var.name == "cert-manager" ? 1 : 0
-  
+
   name        = "${var.project_name}-${var.environment}-cert-manager-route53"
   description = "Policy for cert-manager to manage Route53 records"
 
@@ -43,7 +43,7 @@ resource "aws_iam_policy" "cert_manager_route53" {
 # IAM Policy for ArgoCD (if needed)
 resource "aws_iam_policy" "argocd" {
   count = var.name == "argocd" ? 1 : 0
-  
+
   name        = "${var.project_name}-${var.environment}-argocd"
   description = "Policy for ArgoCD service account"
 
@@ -68,20 +68,20 @@ resource "aws_iam_policy" "argocd" {
 data "aws_iam_policy_document" "trust_policy" {
   statement {
     effect = "Allow"
-    
+
     principals {
       type        = "Federated"
       identifiers = [var.cluster_oidc_provider_arn]
     }
-    
+
     actions = ["sts:AssumeRoleWithWebIdentity"]
-    
+
     condition {
       test     = "StringEquals"
       variable = "${replace(var.cluster_oidc_issuer_url, "https://", "")}:sub"
       values   = ["system:serviceaccount:${var.namespace}:${var.name}"]
     }
-    
+
     condition {
       test     = "StringEquals"
       variable = "${replace(var.cluster_oidc_issuer_url, "https://", "")}:aud"
@@ -105,7 +105,7 @@ resource "aws_iam_role" "service_account" {
 # Attach custom policies to role
 resource "aws_iam_role_policy_attachment" "custom_policies" {
   count = length(var.policy_arns)
-  
+
   role       = aws_iam_role.service_account.name
   policy_arn = var.policy_arns[count.index]
 }
@@ -113,14 +113,14 @@ resource "aws_iam_role_policy_attachment" "custom_policies" {
 # Attach service-specific policies
 resource "aws_iam_role_policy_attachment" "cert_manager" {
   count = var.name == "cert-manager" ? 1 : 0
-  
+
   role       = aws_iam_role.service_account.name
   policy_arn = aws_iam_policy.cert_manager_route53[0].arn
 }
 
 resource "aws_iam_role_policy_attachment" "argocd" {
   count = var.name == "argocd" ? 1 : 0
-  
+
   role       = aws_iam_role.service_account.name
   policy_arn = aws_iam_policy.argocd[0].arn
 }
@@ -130,11 +130,11 @@ resource "kubernetes_service_account" "service_account" {
   metadata {
     name      = var.name
     namespace = var.namespace
-    
+
     annotations = {
       "eks.amazonaws.com/role-arn" = aws_iam_role.service_account.arn
     }
-    
+
     labels = {
       "app.kubernetes.io/name"       = var.name
       "app.kubernetes.io/managed-by" = "terraform"
@@ -146,7 +146,7 @@ resource "kubernetes_service_account" "service_account" {
 # Redis 전용 IRSA 역할 생성 (기존 코드 유지)
 resource "aws_iam_role" "redis_irsa" {
   count = var.create_db_role ? 1 : 0
-  
+
   name = "${var.project_name}-${var.environment}-redis-irsa-role"
 
   assume_role_policy = jsonencode({
@@ -154,7 +154,7 @@ resource "aws_iam_role" "redis_irsa" {
     Statement = [{
       Effect = "Allow"
       Principal = {
-        Federated = var.cluster_oidc_provider_arn        
+        Federated = var.cluster_oidc_provider_arn
       }
       Action = "sts:AssumeRoleWithWebIdentity"
       Condition = {
@@ -171,7 +171,7 @@ resource "aws_iam_role" "redis_irsa" {
 # Redis용 SSM 파라미터 접근 정책
 resource "aws_iam_role_policy" "redis_ssm_policy" {
   count = var.create_db_role ? 1 : 0
-  
+
   name = "${var.project_name}-${var.environment}-ssm-read-redis-auth-token"
   role = aws_iam_role.redis_irsa[0].id
 
@@ -190,7 +190,7 @@ resource "aws_iam_role_policy" "redis_ssm_policy" {
 # Redis 전용 Kubernetes Service Account 생성
 resource "kubernetes_service_account" "redis_sa" {
   count = var.create_db_role ? 1 : 0
-  
+
   metadata {
     name      = "redis-sa"
     namespace = var.namespace

@@ -88,10 +88,10 @@ output "ebs_csi_driver_iam_role_arn" {
 output "kubectl_config" {
   description = "kubectl config file content for connecting to the cluster"
   value = {
-    cluster_name     = aws_eks_cluster.main.name
-    endpoint        = aws_eks_cluster.main.endpoint
-    ca_data         = aws_eks_cluster.main.certificate_authority[0].data
-    region          = data.aws_region.current.name
+    cluster_name = aws_eks_cluster.main.name
+    endpoint     = aws_eks_cluster.main.endpoint
+    ca_data      = aws_eks_cluster.main.certificate_authority[0].data
+    region       = data.aws_region.current.name
   }
 }
 
@@ -122,22 +122,22 @@ output "addon_status" {
     vpc_cni = {
       addon_name    = aws_eks_addon.vpc_cni.addon_name
       addon_version = aws_eks_addon.vpc_cni.addon_version
-      arn          = aws_eks_addon.vpc_cni.arn
+      arn           = aws_eks_addon.vpc_cni.arn
     }
     coredns = {
       addon_name    = aws_eks_addon.coredns.addon_name
       addon_version = aws_eks_addon.coredns.addon_version
-      arn          = aws_eks_addon.coredns.arn
+      arn           = aws_eks_addon.coredns.arn
     }
     kube_proxy = {
       addon_name    = aws_eks_addon.kube_proxy.addon_name
       addon_version = aws_eks_addon.kube_proxy.addon_version
-      arn          = aws_eks_addon.kube_proxy.arn
+      arn           = aws_eks_addon.kube_proxy.arn
     }
     ebs_csi_driver = {
       addon_name    = aws_eks_addon.ebs_csi_driver.addon_name
       addon_version = aws_eks_addon.ebs_csi_driver.addon_version
-      arn          = aws_eks_addon.ebs_csi_driver.arn
+      arn           = aws_eks_addon.ebs_csi_driver.arn
     }
   }
 }

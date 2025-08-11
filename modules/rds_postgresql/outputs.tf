@@ -8,7 +8,7 @@ output "db_instance_id" {
 output "db_instance_endpoint" {
   description = "The RDS instance endpoint"
   value       = aws_db_instance.this.endpoint
-  sensitive = true
+  sensitive   = true
 }
 
 # RDS 포트 (기본 PostgreSQL: 5432)
