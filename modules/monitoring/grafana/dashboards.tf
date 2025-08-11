@@ -9,7 +9,7 @@ resource "kubernetes_config_map" "grafana_dashboards" {
 
   metadata {
     # 파일명에서 .json 제거하고 이름에 안전한 문자만 사용
-    name      = "grafana-dashboard-${replace(regex("\\.json$", each.key), "/[^a-zA-Z0-9-]/", "-")}"
+    name      = "grafana-dashboard-${trim(regexreplace(regexreplace(lower(regexreplace(each.key, "\\.json$", "")), "[^a-z0-9.-]", "-"), "^-+|\\.+$|[-.]+$", "-"), "-.")}"
     namespace = var.namespace
     labels = {
       # values.yaml의 sidecar가 읽어가는 라벨
