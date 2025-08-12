@@ -70,7 +70,8 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
           "elasticloadbalancing:DescribeTargetGroupAttributes",
           "elasticloadbalancing:DescribeTargetHealth",
           "elasticloadbalancing:DescribeTags",
-          "elasticloadbalancing:ModifyRule"
+          "elasticloadbalancing:ModifyRule",
+          "elasticloadbalancing:ModifyListenerAttributes"
         ]
         Resource = "*"
       },
@@ -300,6 +301,12 @@ resource "aws_security_group_rule" "alb_to_nodes" {
   source_security_group_id = aws_security_group.alb.id
   security_group_id        = var.node_group_security_group_id
   description              = "Allow ALB to communicate with EKS nodes"
+}
+
+# ingressClass
+resource "kubernetes_ingress_class_v1" "alb" {
+  metadata { name = "alb" }
+  spec { controller = "ingress.k8s.aws/alb" }
 }
 
 # AWS Load Balancer Controller Helm Chart
