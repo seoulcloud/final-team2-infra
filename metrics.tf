@@ -21,7 +21,7 @@ resource "aws_route53_record" "hpa_test_alias" {
 
   alias {
     name                   = module.k8s_hpa_test.hpa_test_external_svc_status_hostname
-    zone_id                = "<elb_hosted_zone_id>"
+    zone_id                = "Z215JYRZR1TBD5"  # 서울 리전 ALB Hosted Zone ID 예시
     evaluate_target_health = true
   }
 }
