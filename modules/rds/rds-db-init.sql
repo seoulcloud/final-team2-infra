@@ -11,9 +11,7 @@ BEGIN
 END
 $$;
 
--- 2) 글로벌 읽기 권한 부여
---    - pg_monitor: 핵심 모니터링 뷰 접근
---    - pg_read_all_stats/pg_read_all_settings: 통계/설정 읽기
+-- 2) 필요한 권한 부여
 GRANT CONNECT ON DATABASE postgres TO postgres_exporter;
 GRANT USAGE ON SCHEMA public TO postgres_exporter;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO postgres_exporter;

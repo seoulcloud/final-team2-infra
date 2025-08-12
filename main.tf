@@ -148,7 +148,7 @@ resource "aws_ssm_parameter" "db_password_postgresql" {
   type       = "SecureString" # 암호화 저장
   value      = var.db_password_postgresql
   tags       = var.common_tags
-  depends_on = [module.rds_postgresql]
+  depends_on = [module.rds]
 }
 
 resource "aws_ssm_parameter" "db_password_mongodb" {
@@ -374,7 +374,7 @@ resource "aws_route53_record" "rds_endpoint" {
   name    = "pg-db.${var.domain_name}" # 예: pg-db.goteego.store
   type    = "CNAME"
   ttl     = 300
-  records = [module.rds_postgresql.db_instance_endpoint] # RDS 모듈 output
+  records = [module.rds.db_instance_endpoint] # RDS 모듈 output
 }
 
 # MongoDB (DocumentDB)
