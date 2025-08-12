@@ -397,6 +397,7 @@ resource "aws_route53_record" "redis_endpoint" {
 
 # Grafana 외부 접속용 도메인(grafana.goteego.store)
 resource "aws_route53_record" "grafana" {
+  count   = module.grafana.grafana_alb_dns != null ? 1 : 0
   zone_id = aws_route53_zone.main.zone_id
   name    = "grafana.${var.domain_name}"
   type    = "CNAME"
