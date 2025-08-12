@@ -26,7 +26,7 @@ resource "helm_release" "grafana" {
   # Prometheus ClusterIP 동적 세팅
   set {
     name  = "datasources.datasources\\.yaml.datasources[0].url"
-    value = format("http://%s:9090", data.kubernetes_service.prom.spec[0].cluster_ip)
+    value = "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
   }
 
   depends_on = [var.depends_on_module]

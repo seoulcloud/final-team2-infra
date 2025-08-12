@@ -541,6 +541,8 @@ module "argocd" {
   chart_version = "8.2.5" # 버전관리는 루트에서 모듈은 에러방지
   timeout       = 900     # 900초 대기 (EKS 설치 대기)
 
+  alb_security_group_id = module.alb.alb_security_group_id
+
   depends_on = [
     module.eks,
     kubernetes_namespace.argocd,
