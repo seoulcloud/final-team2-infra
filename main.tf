@@ -432,19 +432,19 @@ resource "aws_ssm_parameter" "redis_auth_token" {
 # Kubernetes Applications (cert-manager & ArgoCD)
 # ========================================
 
-# cert-manager namespace
-resource "kubernetes_namespace" "cert_manager" {
-  metadata {
-    name = "cert-manager"
-
-    labels = {
-      "name"                         = "cert-manager"
-      "app.kubernetes.io/managed-by" = "terraform"
-    }
-  }
-
-  depends_on = [module.eks]
-}
+# cert-manager namespace (미사용: TLS 비활성화로 주석 처리)
+# resource "kubernetes_namespace" "cert_manager" {
+#   metadata {
+#     name = "cert-manager"
+#
+#     labels = {
+#       "name"                         = "cert-manager"
+#       "app.kubernetes.io/managed-by" = "terraform"
+#     }
+#   }
+#
+#   depends_on = [module.eks]
+# }
 
 # ArgoCD namespace
 resource "kubernetes_namespace" "argocd" {
@@ -460,24 +460,24 @@ resource "kubernetes_namespace" "argocd" {
   depends_on = [module.eks]
 }
 
-# IRSA for cert-manager (기존 모듈 활용)
-module "cert_manager_irsa" {
-  source = "./modules/irsa"
-
-  name                      = "cert-manager"
-  namespace                 = kubernetes_namespace.cert_manager.metadata[0].name
-  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
-  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
-  project_name              = var.project_name
-  environment               = var.environment
-  hosted_zone_arn           = aws_route53_zone.main.arn
-  common_tags               = var.common_tags
-
-  depends_on = [
-    module.eks,
-    kubernetes_namespace.cert_manager
-  ]
-}
+# IRSA for cert-manager (미사용: TLS 비활성화로 주석 처리)
+# module "cert_manager_irsa" {
+#   source = "./modules/irsa"
+#
+#   name                      = "cert-manager"
+#   namespace                 = kubernetes_namespace.cert_manager.metadata[0].name
+#   cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+#   cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+#   project_name              = var.project_name
+#   environment               = var.environment
+#   hosted_zone_arn           = aws_route53_zone.main.arn
+#   common_tags               = var.common_tags
+#
+#   depends_on = [
+#     module.eks,
+#     kubernetes_namespace.cert_manager
+#   ]
+# }
 
 # ALB Module
 module "alb" {
@@ -514,25 +514,19 @@ module "alb" {
   ]
 }
 
-# cert-manager Helm chart
-module "certmanager" {
-  source               = "./modules/certmanager"
-  namespace            = kubernetes_namespace.cert_manager.metadata[0].name
-  chart_version        = "v1.13.3"
-  service_account_name = module.cert_manager_irsa.service_account_name
+# cert-manager Helm chart (미사용: TLS 비활성화로 주석 처리)
+# module "certmanager" {
+#   source               = "./modules/certmanager"
+#   namespace            = kubernetes_namespace.cert_manager.metadata[0].name
+#   chart_version        = "v1.13.3"
+#   service_account_name = module.cert_manager_irsa.service_account_name
+#
+#   depends_on = [
+#     module.cert_manager_irsa,
+#     kubernetes_namespace.cert_manager
+#   ]
+# }
 
-  depends_on = [
-    module.cert_manager_irsa,
-    kubernetes_namespace.cert_manager
-  ]
-}
-
-# ALB Controller 배포 후 대기 시간
-resource "time_sleep" "wait_for_alb_controller" {
-  depends_on = [module.alb]
-
-  create_duration = "900s" # 900초 대기 (ALB Controller 완전 초기화 대기)
-}
 
 # ArgoCD Helm chart
 module "argocd" {
@@ -546,10 +540,58 @@ module "argocd" {
   depends_on = [
     module.eks,
     kubernetes_namespace.argocd,
-    time_sleep.wait_for_alb_controller
+    module.alb
   ]
 }
 
+# ArgoCD Ingress hostname (Kubernetes data source)
+data "kubernetes_ingress_v1" "argocd" {
+  metadata {
+    name      = "argocd-server"
+    namespace = kubernetes_namespace.argocd.metadata[0].name
+  }
+
+  depends_on = [
+    module.argocd
+  ]
+}
+
+# Route53 CNAME for ArgoCD: argocd.<domain> → ALB hostname
+resource "aws_route53_record" "argocd" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "argocd.${var.domain_name}"
+  type    = "CNAME"
+  ttl     = 300
+
+  records = [
+    data.kubernetes_ingress_v1.argocd.status[0].load_balancer[0].ingress[0].hostname,
+  ]
+
+  depends_on = [
+    aws_route53_zone.main,
+    module.argocd
+  ]
+}
+
+# Route53 CNAME for prod API: api.<domain> → provided hostname (conditional)
+resource "aws_route53_record" "api_prod" {
+  count   = length(var.prod_backend_hostname) > 0 ? 1 : 0
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "api.${var.domain_name}"
+  type    = "CNAME"
+  ttl     = 300
+  records = [var.prod_backend_hostname]
+}
+
+# Route53 CNAME for dev API: dev.api.<domain> → provided hostname (conditional)
+resource "aws_route53_record" "api_dev" {
+  count   = length(var.dev_backend_hostname) > 0 ? 1 : 0
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "dev.api.${var.domain_name}"
+  type    = "CNAME"
+  ttl     = 300
+  records = [var.dev_backend_hostname]
+}
 # ALB → EKS NodeGroup SG: ArgoCD 서버 targetPort(8080) 허용
 resource "aws_security_group_rule" "allow_alb_to_nodes_argo_8080" {
   type                     = "ingress"

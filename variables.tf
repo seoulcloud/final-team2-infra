@@ -231,6 +231,19 @@ variable "domain_name" {
   type        = string
   default     = "goteego.store"
 }
+
+# Backend hostnames for CNAME targets
+variable "prod_backend_hostname" {
+  description = "Prod backend public hostname for api.<domain> CNAME (e.g., alb-xxxx.ap-northeast-2.elb.amazonaws.com)"
+  type        = string
+  default     = ""
+}
+
+variable "dev_backend_hostname" {
+  description = "Dev backend public hostname for dev.api.<domain> CNAME"
+  type        = string
+  default     = ""
+}
 variable "subject_alternative_names" {
   type        = list(string)
   default     = []

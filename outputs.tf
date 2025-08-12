@@ -1,16 +1,9 @@
-# Output ArgoCD information
-output "argocd_server_url" {
-  description = "ArgoCD Server URL (LoadBalancer)"
-  value       = "Check LoadBalancer external IP: kubectl get svc argocd-server -n argocd"
+output "argocd_ingress_hostname" {
+  description = "ArgoCD Ingress ALB hostname (from Kubernetes)"
+  value       = try(data.kubernetes_ingress_v1.argocd.status[0].load_balancer[0].ingress[0].hostname, "")
 }
 
-output "argocd_admin_password" {
-  description = "ArgoCD Admin Password Command"
+output "argocd_admin_password_cmd" {
+  description = "How to get ArgoCD admin password"
   value       = "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
-  sensitive   = true
 }
-
-output "cert_manager_status" {
-  description = "cert-manager installation status"
-  value       = "cert-manager installed with Route53 DNS challenge support"
-} 
