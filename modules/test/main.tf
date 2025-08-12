@@ -1,12 +1,3 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
 # ---------------------------------
 # Provider
 # ---------------------------------
@@ -59,7 +50,7 @@ resource "aws_lb" "app_alb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = aws_subnet.public[*].id
+  subnets            = var.public_subnet_ids
 }
 
 resource "aws_lb_listener" "https" {
@@ -106,7 +97,7 @@ resource "aws_route53_zone" "main" {
 # ---------------------------------
 resource "aws_security_group" "alb_sg" {
   name   = "alb-sg"
-  vpc_id = aws_vpc.main.id
+  vpc_id = var.vpc_id
 
   ingress {
     from_port   = 80
@@ -127,5 +118,40 @@ resource "aws_security_group" "alb_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# ---------------------------------
+# Target Group (ALB 뒤의 실제 서비스 대상 그룹)
+# ---------------------------------
+resource "aws_lb_target_group" "app_tg" {
+  name     = "app-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+
+  health_check {
+    path                = "/"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+  }
+}
+
+# ---------------------------------
+# ALB HTTPS 리스너 수정 (기본 액션을 Target Group으로 변경)
+# ---------------------------------
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.app_alb.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate_validation.alb_cert_validation_complete.certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app_tg.arn
   }
 }

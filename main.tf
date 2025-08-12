@@ -607,4 +607,14 @@ module "k8s_hpa_test" {
   max_replicas    = var.max_replicas
   target_cpu_utilization = var.target_cpu_utilization
   container_image = var.container_image
+    depends_on = [ module.test,
+    module.eks]
+}
+
+module "test" {
+  source           = "./modules/test"
+  vpc_id           = module.vpc.vpc_id
+  public_subnet_ids = module.vpc.public_subnets
+  domain_name      = var.domain_name
+
 }
