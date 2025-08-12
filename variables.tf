@@ -277,6 +277,7 @@ variable "github_username" {
 
 variable "deployment_name" {
   type = string
+  default = "autoscaling-test-deployment"
 }
 
 variable "namespace" {
