@@ -33,7 +33,7 @@ resource "aws_route53_record" "alb_cert_validation" {
   records         = [each.value.record]
   ttl             = 60
   type            = each.value.type
-  zone_id         = aws_route53_zone.main.zone_id
+  zone_id         = data.aws_route53_zone.main.zone_id
 }
 
 # 인증서 검증 완료
@@ -70,11 +70,16 @@ resource "aws_lb" "app_alb" {
 #   }
 # }
 
+data "aws_route53_zone" "main" {
+  name         = "goteego.store"
+  private_zone = false
+}
+
 # ---------------------------------
 # Route53 ALIAS 레코드 (ALB 연결)
 # ---------------------------------
 resource "aws_route53_record" "alb_alias" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = "goteego.store"
   type    = "A"
 
@@ -85,12 +90,12 @@ resource "aws_route53_record" "alb_alias" {
   }
 }
 
-# ---------------------------------
-# Route53 Hosted Zone
-# ---------------------------------
-resource "aws_route53_zone" "main" {
-  name = "goteego.store"
-}
+# # ---------------------------------
+# # Route53 Hosted Zone
+# # ---------------------------------
+# resource "aws_route53_zone" "main" {
+#   name = "goteego.store"
+# }
 
 # ---------------------------------
 # ALB 보안그룹
