@@ -596,3 +596,15 @@ module "github_oidc_roles" {
   s3_bucket_name             = module.s3_frontend_prod.bucket_name
   cloudfront_distribution_id = module.cloudfront_prod.distribution_id
 }
+
+# autoscaling =========================
+module "k8s_hpa_test" {
+  source = "./modules/hpa"
+
+  namespace       = var.namespace
+  deployment_name = var.deployment_name
+  min_replicas    = var.min_replicas
+  max_replicas    = var.max_replicas
+  target_cpu_utilization = var.target_cpu_utilization
+  container_image = var.container_image
+}
