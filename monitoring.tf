@@ -15,7 +15,7 @@ module "monitoring_rds_cpu" {
   action_description  = "RDS PostgreSQL CPU 사용률이 임계치를 초과했습니다. 쿼리 성능을 점검하거나 리소스를 확장하세요."
 
   dimensions = {
-    DBInstanceIdentifier = module.rds_postgresql.db_instance_id # RDS 인스턴스 ID
+    DBInstanceIdentifier = module.rds.db_instance_id # RDS 인스턴스 ID
   }
 
   tags = var.common_tags

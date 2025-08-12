@@ -43,8 +43,8 @@ resource "aws_security_group_rule" "alb_to_nodes_grafana" {
   description              = "Allow ALB to reach Grafana"
 }
 
-# 1) 잠깐 대기해서 ALB 붙을 시간 주기 (60초는 예시)
+# 1) 잠깐 대기해서 ALB 붙을 시간 주기
 resource "time_sleep" "wait_for_alb" {
   depends_on       = [helm_release.grafana]
-  create_duration  = "60s"
+  create_duration  = "90s"
 }
