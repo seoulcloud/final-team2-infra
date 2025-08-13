@@ -505,12 +505,8 @@ resource "aws_launch_template" "node_group" {
   vpc_security_group_ids = [aws_security_group.node_group.id]
 
   # User data to ensure SSM agent is running
-  user_data = base64encode(templatefile("${path.module}/templates/user-data.sh.tpl", {
-    cluster_name      = aws_eks_cluster.main.name
-    cluster_endpoint  = aws_eks_cluster.main.endpoint
-    cluster_ca        = aws_eks_cluster.main.certificate_authority[0].data
-    enable_ssm_access = var.enable_ssm_access
-  }))
+  # user_data intentionally removed to use AL2023 default bootstrap (nodeadm)
+  # See: https://aws.amazon.com/blogs/containers/amazon-eks-optimized-amazon-linux-2023-amis-now-available/
 
   # Instance metadata options
   metadata_options {
