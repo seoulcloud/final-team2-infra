@@ -23,11 +23,6 @@ server:
       alb.ingress.kubernetes.io/backend-protocol: HTTP
       alb.ingress.kubernetes.io/healthcheck-path: /healthz
       alb.ingress.kubernetes.io/success-codes: "200-399"
-    hosts:
-      - argocd.goteego.store
-    paths:
-      - /
-    pathType: Prefix
 
 configs:
   params:
