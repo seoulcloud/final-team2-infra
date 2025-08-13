@@ -83,7 +83,7 @@ variable "enable_node_group_limited_admin" {
 variable "eks_cluster_version" {
   description = "EKS cluster version"
   type        = string
-  default     = "1.30" # stable version
+  default     = "1.33" # stable version
 }
 
 variable "eks_node_groups" {
@@ -104,7 +104,7 @@ variable "eks_node_groups" {
       max_size       = 2
       desired_size   = 1
       disk_size      = 20
-      ami_type       = "AL2_x86_64"
+      ami_type       = "AL2023_x86_64"
       capacity_type  = "SPOT"
     },
     "compute" = {
@@ -113,7 +113,7 @@ variable "eks_node_groups" {
       max_size       = 2
       desired_size   = 1
       disk_size      = 20
-      ami_type       = "AL2_x86_64"
+      ami_type       = "AL2023_x86_64"
       capacity_type  = "SPOT"
     }
   }
