@@ -147,6 +147,7 @@ resource "aws_ssm_parameter" "db_password_postgresql" {
   name       = "/${var.project_name}/${var.environment}/db_password_postgresql"
   type       = "SecureString" # 암호화 저장
   value      = var.db_password_postgresql
+  overwrite  = true
   tags       = var.common_tags
   depends_on = [module.rds]
 }
@@ -155,6 +156,7 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
   name       = "/${var.project_name}/${var.environment}/db_password_mongodb"
   type       = "SecureString"
   value      = var.db_password_mongodb
+  overwrite  = true
   tags       = var.common_tags
   depends_on = [module.documentdb]
 }
@@ -422,11 +424,11 @@ module "elasticache" {
 }
 # redis_auth_parameter
 resource "aws_ssm_parameter" "redis_auth_token" {
-  name  = "/${var.project_name}/${var.environment}/redis_auth_token"
-  type  = "SecureString" # 보안 문자열로 저장
-  value = var.redis_auth_token
-  tags  = var.common_tags
-
+  name       = "/${var.project_name}/${var.environment}/redis_auth_token"
+  type       = "SecureString" # 보안 문자열로 저장
+  value      = var.redis_auth_token
+  overwrite  = true
+  tags       = var.common_tags
 }
 # ========================================
 # Kubernetes Applications (cert-manager & ArgoCD)

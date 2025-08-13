@@ -31,7 +31,7 @@ resource "aws_iam_role" "frontend_deploy_role" {
 }
 
 resource "aws_iam_policy" "frontend_deploy_policy" {
-  name = "FrontendDeployPolicy"
+  name = "goteego-team-FrontendDeployPolicy"
 
   policy = jsonencode({
     Version = "2012-10-17",
