@@ -303,11 +303,11 @@ resource "aws_security_group_rule" "alb_to_nodes" {
   description              = "Allow ALB to communicate with EKS nodes"
 }
 
-# ingressClass
-resource "kubernetes_ingress_class_v1" "alb" {
-  metadata { name = "alb" }
-  spec { controller = "ingress.k8s.aws/alb" }
-}
+# ingressClass managed by Helm chart (avoid ownership conflicts)
+# resource "kubernetes_ingress_class_v1" "alb" {
+#   metadata { name = "alb" }
+#   spec { controller = "ingress.k8s.aws/alb" }
+# }
 
 # AWS Load Balancer Controller Helm Chart
 resource "helm_release" "aws_load_balancer_controller" {
