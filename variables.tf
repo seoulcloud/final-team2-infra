@@ -104,7 +104,7 @@ variable "eks_node_groups" {
       max_size       = 2
       desired_size   = 1
       disk_size      = 20
-      ami_type       = "AL2023_x86_64"
+      ami_type       = "AL2023_x86_64_STANDARD"
       capacity_type  = "SPOT"
     },
     "compute" = {
@@ -113,7 +113,7 @@ variable "eks_node_groups" {
       max_size       = 2
       desired_size   = 1
       disk_size      = 20
-      ami_type       = "AL2023_x86_64"
+      ami_type       = "AL2023_x86_64_STANDARD"
       capacity_type  = "SPOT"
     }
   }
