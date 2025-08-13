@@ -15,6 +15,7 @@ server:
     enabled: true
     ingressClassName: alb
     annotations:
+      kubernetes.io/ingress.class: alb
       alb.ingress.kubernetes.io/scheme: internet-facing
       alb.ingress.kubernetes.io/target-type: ip
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
@@ -25,13 +26,12 @@ server:
     hosts:
       - argocd.goteego.store
     paths:
-      - path: /
-        pathType: Prefix
+      - /
+    pathType: Prefix
 
 configs:
   params:
     "server.insecure": true
-    "repo.server": "insecure: true"
   rbac:
     "policy.default": role:readonly
   repositories:
