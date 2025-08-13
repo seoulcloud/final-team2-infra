@@ -8,23 +8,37 @@ resource "helm_release" "argocd" {
   force_update = true
   reuse_values = false
 
-  # Explicitly set critical ingress fields to avoid schema/merge mismatches
-  set {
-    name  = "server.ingress.hosts[0]"
-    value = "argocd.goteego.store"
-  }
-  set {
-    name  = "server.ingress.paths[0]"
-    value = "/"
-  }
-  set {
-    name  = "server.ingress.ingressClassName"
-    value = "alb"
-  }
-
   values = [
-    templatefile("${path.module}/values.yaml.tpl", {
-      alb_security_group_id = var.alb_security_group_id
+    yamlencode({
+      server = {
+        service    = { type = "ClusterIP" }
+        extraArgs  = ["--insecure"]
+        replicaCount = 1
+        ingress = {
+          enabled          = true
+          ingressClassName = "alb"
+          annotations = {
+            "kubernetes.io/ingress.class"            = "alb"
+            "alb.ingress.kubernetes.io/scheme"       = "internet-facing"
+            "alb.ingress.kubernetes.io/target-type"  = "ip"
+            "alb.ingress.kubernetes.io/listen-ports" = jsonencode([{ HTTP = 80 }])
+            "alb.ingress.kubernetes.io/security-groups" = var.alb_security_group_id
+            "alb.ingress.kubernetes.io/backend-protocol" = "HTTP"
+            "alb.ingress.kubernetes.io/healthcheck-path" = "/healthz"
+            "alb.ingress.kubernetes.io/success-codes"    = "200-399"
+          }
+          hosts = ["argocd.goteego.store"]
+          paths = ["/"]
+        }
+      }
+      configs = {
+        params = { "server.insecure" = true }
+        rbac   = { "policy.default" = "role:readonly" }
+        repositories = [
+          { url = "https://github.com/CLD-3rd/final-team2-manifest.git" }
+        ]
+      }
+      applicationSet = { enabled = true }
     })
   ]
 } 
