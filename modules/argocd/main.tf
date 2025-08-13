@@ -5,6 +5,8 @@ resource "helm_release" "argocd" {
   version    = var.chart_version
   namespace  = var.namespace
   timeout    = var.timeout
+  force_update = true
+  reuse_values = false
 
   values = [
     templatefile("${path.module}/values.yaml.tpl", {
