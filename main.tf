@@ -396,15 +396,15 @@ resource "aws_route53_record" "redis_endpoint" {
 }
 
 # Grafana 외부 접속용 도메인(grafana.goteego.store)
-resource "aws_route53_record" "grafana" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "grafana.${var.domain_name}"
-  type    = "CNAME"
-  ttl     = 300
-
-  records = [module.grafana.grafana_alb_dns]
-  depends_on = [module.grafana]
-}
+# resource "aws_route53_record" "grafana" {
+#   zone_id = aws_route53_zone.main.zone_id
+#   name    = "grafana.${var.domain_name}"
+#   type    = "CNAME"
+#   ttl     = 300
+#
+#   records = [module.grafana.grafana_alb_dns]
+#   depends_on = [module.grafana]
+# }
 
 # elasticache ==========================
 #test
