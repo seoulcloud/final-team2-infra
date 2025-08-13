@@ -547,60 +547,60 @@ module "argocd" {
 }
 
 # ArgoCD Ingress hostname (Kubernetes data source)
-data "kubernetes_ingress_v1" "argocd" {
-  metadata {
-    name      = "argocd-server"
-    namespace = kubernetes_namespace.argocd.metadata[0].name
-  }
-
-  depends_on = [
-    module.argocd
-  ]
-}
+# data "kubernetes_ingress_v1" "argocd" {
+#   metadata {
+#     name      = "argocd-server"
+#     namespace = kubernetes_namespace.argocd.metadata[0].name
+#   }
+#
+#   depends_on = [
+#     module.argocd
+#   ]
+# }
 
 # Safely extract ALB hostname (may be empty on first apply)
-locals {
-  argocd_ingress_hostname = try(
-    data.kubernetes_ingress_v1.argocd.status[0].load_balancer[0].ingress[0].hostname,
-    null
-  )
-}
+# locals {
+#   argocd_ingress_hostname = try(
+#     data.kubernetes_ingress_v1.argocd.status[0].load_balancer[0].ingress[0].hostname,
+#     null
+#   )
+# }
 
 # Route53 CNAME for ArgoCD: argocd.<domain> → ALB hostname
-resource "aws_route53_record" "argocd" {
-  count   = local.argocd_ingress_hostname != null && length(local.argocd_ingress_hostname) > 0 ? 1 : 0
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "argocd.${var.domain_name}"
-  type    = "CNAME"
-  ttl     = 300
-
-  records = [local.argocd_ingress_hostname]
-
-  depends_on = [
-    aws_route53_zone.main,
-    module.argocd
-  ]
-}
+# resource "aws_route53_record" "argocd" {
+#   count   = local.argocd_ingress_hostname != null && length(local.argocd_ingress_hostname) > 0 ? 1 : 0
+#   zone_id = aws_route53_zone.main.zone_id
+#   name    = "argocd.${var.domain_name}"
+#   type    = "CNAME"
+#   ttl     = 300
+#
+#   records = [local.argocd_ingress_hostname]
+#
+#   depends_on = [
+#     aws_route53_zone.main,
+#     module.argocd
+#   ]
+# }
 
 # Route53 CNAME for prod API: api.<domain> → provided hostname (conditional)
-resource "aws_route53_record" "api_prod" {
-  count   = length(var.prod_backend_hostname) > 0 ? 1 : 0
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "api.${var.domain_name}"
-  type    = "CNAME"
-  ttl     = 300
-  records = [var.prod_backend_hostname]
-}
+# resource "aws_route53_record" "api_prod" {
+#   count   = length(var.prod_backend_hostname) > 0 ? 1 : 0
+#   zone_id = aws_route53_zone.main.zone_id
+#   name    = "api.${var.domain_name}"
+#   type    = "CNAME"
+#   ttl     = 300
+#   records = [var.prod_backend_hostname]
+# }
 
 # Route53 CNAME for dev API: dev.api.<domain> → provided hostname (conditional)
-resource "aws_route53_record" "api_dev" {
-  count   = length(var.dev_backend_hostname) > 0 ? 1 : 0
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "dev.api.${var.domain_name}"
-  type    = "CNAME"
-  ttl     = 300
-  records = [var.dev_backend_hostname]
-}
+# resource "aws_route53_record" "api_dev" {
+#   count   = length(var.dev_backend_hostname) > 0 ? 1 : 0
+#   zone_id = aws_route53_zone.main.zone_id
+#   name    = "dev.api.${var.domain_name}"
+#   type    = "CNAME"
+#   ttl     = 300
+#   records = [var.dev_backend_hostname]
+# }
 # ALB → EKS NodeGroup SG: ArgoCD 서버 targetPort(8080) 허용
 resource "aws_security_group_rule" "allow_alb_to_nodes_argo_8080" {
   type                     = "ingress"
