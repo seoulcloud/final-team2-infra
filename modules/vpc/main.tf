@@ -284,6 +284,82 @@ resource "aws_vpc_endpoint" "ec2_messages" {
   })
 }
 
+# Generic Security Group for Interface VPC Endpoints (STS/ELBv2/EC2)
+resource "aws_security_group" "vpce_endpoint" {
+  name_prefix = "${var.project_name}-${var.environment}-vpce-"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = var.https_port
+    to_port     = var.https_port
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+    description = "HTTPS from VPC"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.internet_cidr]
+    description = "All outbound traffic"
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-vpce-sg"
+    Type = "VPCE-Endpoint-SecurityGroup"
+  })
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# STS Interface VPC Endpoint
+resource "aws_vpc_endpoint" "sts" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.sts"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.eks_private[*].id
+  security_group_ids  = [aws_security_group.vpce_endpoint.id]
+  private_dns_enabled = true
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-sts-endpoint"
+    Type = "STS-VPC-Endpoint"
+  })
+}
+
+# Elastic Load Balancing v2 Interface VPC Endpoint
+resource "aws_vpc_endpoint" "elbv2" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.elasticloadbalancing"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.eks_private[*].id
+  security_group_ids  = [aws_security_group.vpce_endpoint.id]
+  private_dns_enabled = true
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-elbv2-endpoint"
+    Type = "ELBv2-VPC-Endpoint"
+  })
+}
+
+# EC2 Interface VPC Endpoint
+resource "aws_vpc_endpoint" "ec2" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.ec2"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.eks_private[*].id
+  security_group_ids  = [aws_security_group.vpce_endpoint.id]
+  private_dns_enabled = true
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-ec2-endpoint"
+    Type = "EC2-VPC-Endpoint"
+  })
+}
+
 # Security Group for SSM VPC Endpoints
 resource "aws_security_group" "ssm_endpoint" {
   count = var.enable_ssm_endpoints ? 1 : 0
