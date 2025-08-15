@@ -262,6 +262,7 @@ module "cloudfront_prod" {
   oac_id                = module.cloudfront_oac.oac_id
   s3_bucket_domain_name = module.s3_frontend_prod.bucket_domain_name
   acm_certificate_arn   = module.acm_cert.certificate_arn
+  aliases               = [var.domain_name, "www.${var.domain_name}"]
 
   depends_on = [
     module.acm_dns_validation,
@@ -270,6 +271,48 @@ module "cloudfront_prod" {
   ]
 }
 
+# ACM for ALB/EKS in ap-northeast-2 (wildcard)
+module "acm_cert_kor" {
+  source    = "./modules/acm_certificate"
+  # default provider (ap-northeast-2)
+  domain_name               = var.domain_name
+  subject_alternative_names = ["*.${var.domain_name}", "dev.api.${var.domain_name}", "argocd.${var.domain_name}"]
+}
+
+module "acm_kor_dns_validation" {
+  source = "./modules/acm_dns_validation"
+
+  certificate_arn                       = module.acm_cert_kor.certificate_arn
+  zone_id                               = aws_route53_zone.main.zone_id
+  certificate_domain_validation_options = module.acm_cert_kor.domain_validation_options
+
+  depends_on = [
+    aws_route53_zone.main,
+    module.acm_cert_kor
+  ]
+}
+
+# ExternalDNS to manage Route53 records from Ingress
+module "external_dns" {
+  source = "./modules/external-dns"
+
+  project_name = var.project_name
+  environment  = var.environment
+  namespace    = "kube-system"
+
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+
+  domain_filters = [var.domain_name]
+  hosted_zone_id = aws_route53_zone.main.zone_id
+  sources        = ["ingress"]
+  policy         = "upsert-only"
+  registry       = "txt"
+
+  common_tags = var.common_tags
+
+  depends_on = [module.eks, aws_route53_zone.main]
+}
 
 # output "cloudfront_url" {
 #   value = module.cloudfront_prod.domain_name
@@ -434,19 +477,6 @@ resource "aws_ssm_parameter" "redis_auth_token" {
 # Kubernetes Applications (cert-manager & ArgoCD)
 # ========================================
 
-# cert-manager namespace (미사용: TLS 비활성화로 주석 처리)
-# resource "kubernetes_namespace" "cert_manager" {
-#   metadata {
-#     name = "cert-manager"
-#
-#     labels = {
-#       "name"                         = "cert-manager"
-#       "app.kubernetes.io/managed-by" = "terraform"
-#     }
-#   }
-#
-#   depends_on = [module.eks]
-# }
 
 # ArgoCD namespace
 resource "kubernetes_namespace" "argocd" {
@@ -462,24 +492,6 @@ resource "kubernetes_namespace" "argocd" {
   depends_on = [module.eks]
 }
 
-# IRSA for cert-manager (미사용: TLS 비활성화로 주석 처리)
-# module "cert_manager_irsa" {
-#   source = "./modules/irsa"
-#
-#   name                      = "cert-manager"
-#   namespace                 = kubernetes_namespace.cert_manager.metadata[0].name
-#   cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
-#   cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
-#   project_name              = var.project_name
-#   environment               = var.environment
-#   hosted_zone_arn           = aws_route53_zone.main.arn
-#   common_tags               = var.common_tags
-#
-#   depends_on = [
-#     module.eks,
-#     kubernetes_namespace.cert_manager
-#   ]
-# }
 
 # ALB Module
 module "alb" {
@@ -516,18 +528,6 @@ module "alb" {
   ]
 }
 
-# cert-manager Helm chart (미사용: TLS 비활성화로 주석 처리)
-# module "certmanager" {
-#   source               = "./modules/certmanager"
-#   namespace            = kubernetes_namespace.cert_manager.metadata[0].name
-#   chart_version        = "v1.13.3"
-#   service_account_name = module.cert_manager_irsa.service_account_name
-#
-#   depends_on = [
-#     module.cert_manager_irsa,
-#     kubernetes_namespace.cert_manager
-#   ]
-# }
 
 
 # ArgoCD Helm chart
@@ -539,10 +539,18 @@ module "argocd" {
 
   alb_security_group_id = module.alb.alb_security_group_id
 
+  # TLS settings
+  certificate_arn  = module.acm_cert_kor.certificate_arn
+  ssl_redirect     = "443"
+  insecure         = false
+  ingress_hostname = "argocd.${var.domain_name}"
+  ingress_hosts    = ["argocd.${var.domain_name}"]
+
   depends_on = [
     module.eks,
     kubernetes_namespace.argocd,
-    module.alb
+    module.alb,
+    module.acm_kor_dns_validation
   ]
 }
 
