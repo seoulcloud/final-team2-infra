@@ -473,6 +473,62 @@ resource "aws_ssm_parameter" "redis_auth_token" {
   overwrite  = true
   tags       = var.common_tags
 }
+
+# Kubernetes Secrets Module - Dev 환경
+module "kubernetes_secrets_dev" {
+  source = "./modules/kubernetes_secrets"
+
+  namespace_name = "backend-dev"
+  namespace_labels = {
+    environment = "dev"
+    app         = "backend-api"
+  }
+
+  secret_name = "db-secrets"
+  secret_labels = {
+    environment = "dev"
+    app         = "backend-api"
+  }
+
+  db_password_postgresql = var.db_password_postgresql
+  db_password_mongodb    = var.db_password_mongodb
+  redis_auth_token       = var.redis_auth_token
+
+  eks_dependency = module.eks
+  ssm_parameters_dependency = [
+    aws_ssm_parameter.db_password_postgresql,
+    aws_ssm_parameter.db_password_mongodb,
+    aws_ssm_parameter.redis_auth_token
+  ]
+}
+
+# Kubernetes Secrets Module - Prod 환경
+module "kubernetes_secrets_prod" {
+  source = "./modules/kubernetes_secrets"
+
+  namespace_name = "backend-prod"
+  namespace_labels = {
+    environment = "prod"
+    app         = "backend-api"
+  }
+
+  secret_name = "db-secrets"
+  secret_labels = {
+    environment = "prod"
+    app         = "backend-api"
+  }
+
+  db_password_postgresql = var.db_password_postgresql
+  db_password_mongodb    = var.db_password_mongodb
+  redis_auth_token       = var.redis_auth_token
+
+  eks_dependency = module.eks
+  ssm_parameters_dependency = [
+    aws_ssm_parameter.db_password_postgresql,
+    aws_ssm_parameter.db_password_mongodb,
+    aws_ssm_parameter.redis_auth_token
+  ]
+}
 # ========================================
 # Kubernetes Applications (cert-manager & ArgoCD)
 # ========================================
@@ -644,6 +700,24 @@ output "alb_security_group_id" {
 output "alb_controller_status" {
   description = "AWS Load Balancer Controller installation status"
   value       = "AWS Load Balancer Controller installed with IRSA support"
+}
+
+# Backend API IRSA Module
+module "backend_api_irsa" {
+  source = "./modules/irsa"
+
+  name      = "backend-api"
+  namespace = "backend-prod"  # 기본값으로 prod 사용
+
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+  project_name              = var.project_name
+  environment               = var.environment
+
+  create_backend_api_role = true
+  common_tags             = var.common_tags
+
+  depends_on = [module.eks]
 }
 
 # Frontend Deploy

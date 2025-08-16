@@ -48,6 +48,12 @@ variable "create_db_role" {
   default     = false
 }
 
+variable "create_backend_api_role" {
+  description = "Backend API SSM 접근용 IRSA 역할을 생성할지 여부"
+  type        = bool
+  default     = false
+}
+
 variable "hosted_zone_arn" {
   description = "ARN of the Route53 hosted zone (optional, for cert-manager)"
   type        = string
