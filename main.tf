@@ -397,6 +397,30 @@ resource "aws_route53_record" "redis_endpoint" {
   records = [module.elasticache.primary_endpoint_address] # ElastiCache 모듈 output
 }
 
+module "external_dns" {
+  source = "./modules/external_dns"
+
+  project_name              = var.project_name
+  environment               = var.environment
+  namespace                 = "kube-system"
+
+  cluster_oidc_provider_arn = module.eks.oidc_provider_arn
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+
+  # 관리할 도메인
+  domain_filters            = var.domain_name
+
+  # Route53 Hosted Zone
+  hosted_zone_id            = aws_route53_zone.main.zone_id
+  # hosted_zone_arn         = "arn:aws:route53:::hostedzone/XXXXXXXX"
+
+  sources                   = ["ingress"]   # ingress 기반 레코드 관리
+  policy                    = "upsert-only" # 삭제 대신 갱신만
+  registry                  = "txt"
+  chart_version             = "1.15.0"
+
+  common_tags = var.common_tags
+}
 # Grafana 외부 접속용 도메인(grafana.goteego.store)
 # resource "aws_route53_record" "grafana" {
 #   zone_id = aws_route53_zone.main.zone_id

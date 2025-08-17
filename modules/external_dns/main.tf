@@ -2,8 +2,11 @@ data "aws_region" "current" {}
 
 # Hosted Zone ARN 계산
 locals {
-  hosted_zone_arn = var.hosted_zone_arn != null ? var.hosted_zone_arn :
-                    var.hosted_zone_id  != null ? "arn:aws:route53:::hostedzone/${var.hosted_zone_id}" : null
+  hosted_zone_arn = (
+    var.hosted_zone_arn != null
+    ? var.hosted_zone_arn
+    : (var.hosted_zone_id != null ? "arn:aws:route53:::hostedzone/${var.hosted_zone_id}" : null)
+  )
   sa_name         = "external-dns"
   txt_owner_id    = coalesce(var.txt_owner_id, "${var.project_name}-${var.environment}")
 }
@@ -12,7 +15,10 @@ locals {
 data "aws_iam_policy_document" "trust" {
   statement {
     effect = "Allow"
-    principals { type = "Federated" identifiers = [var.cluster_oidc_provider_arn] }
+    principals {
+      type        = "Federated"
+      identifiers = [var.cluster_oidc_provider_arn]
+    }
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
     condition {
@@ -31,7 +37,7 @@ data "aws_iam_policy_document" "trust" {
 resource "aws_iam_role" "externaldns" {
   name               = "${var.project_name}-${var.environment}-externaldns-irsa"
   assume_role_policy = data.aws_iam_policy_document.trust.json
-  tags               = var.common_tags
+  tags               = var.tags
 }
 
 # Route53 권한 (Zone 제한 권장)
@@ -60,7 +66,7 @@ resource "aws_iam_policy" "externaldns_route53" {
     ]
   })
 
-  tags = var.common_tags
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "attach" {
@@ -117,7 +123,7 @@ resource "helm_release" "external_dns" {
   }
   set {
     name  = "txtOwnerId"
-    value = "${var.project_name}-${var.environment}"
+    value = local.txt_owner_id
   }
 
   # AWS 옵션
@@ -142,6 +148,11 @@ resource "helm_release" "external_dns" {
   set {
     name  = "logLevel"
     value = "info"
+  }
+
+  set {
+    name  = "extraArgs[0]"
+    value = "--aws-evaluate-target-health=false"
   }
 
   # sources[] 배열
