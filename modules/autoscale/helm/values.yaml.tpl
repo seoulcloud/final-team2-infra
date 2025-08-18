@@ -1,0 +1,11 @@
+namespace: ${namespace}
+deploymentName: ${deployment_name}
+appLabel: ${app_label}
+containerName: ${container_name}
+containerImage: ${container_image}
+minReplicas: ${min_replicas}
+maxReplicas: ${max_replicas}
+targetCPUUtilization: ${target_cpu_utilization}
+internalServiceName: ${internal_service_name}
+externalServiceName: ${external_service_name}
+targetGroupArn: ${target_group_arn}

@@ -251,3 +251,52 @@ resource "aws_iam_role_policy" "backend_api_ssm_policy" {
   })
 }
 
+
+# autoscaler용 전용 IRSA 역할 생성 =========
+
+
+resource "aws_iam_role" "cluster_autoscaler" {
+  name = "${var.project_name}-${var.environment}-cluster-autoscaler-irsa"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = var.cluster_oidc_provider_arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "${replace(var.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:kube-system:cluster-autoscaler",
+          "${replace(var.cluster_oidc_issuer_url, "https://", "")}:aud" = "sts.amazonaws.com"
+        }
+      }
+    }]
+  })
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-cluster-autoscaler-irsa"
+  })
+}
+
+# autoscaler용 정책 붙임
+
+resource "aws_iam_role_policy_attachment" "cluster_autoscaler_attach" {
+  role       = aws_iam_role.cluster_autoscaler.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterAutoscalerPolicy"
+}
+
+# autoscaler용 Kubernetes Service Account 생성
+
+resource "kubernetes_service_account" "cluster_autoscaler" {
+  metadata {
+    name      = "cluster-autoscaler"
+    namespace = "kube-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.cluster_autoscaler.arn
+    }
+  }
+}
+
+#================================
