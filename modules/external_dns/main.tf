@@ -160,11 +160,6 @@ resource "helm_release" "external_dns" {
     value = "--annotation-filter=external-dns.goteego/enabled in (true, 'true')"
   }
 
-  set {
-    name  = "extraArgs[2]"
-    value = "--namespace=monitoring"
-  }
-
   # sources[] 배열
   dynamic "set" {
     for_each = var.sources               # 예: ["ingress"]

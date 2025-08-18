@@ -384,22 +384,24 @@ module "external_dns" {
   environment               = var.environment
   namespace                 = "kube-system"
 
-  cluster_oidc_provider_arn = module.eks.oidc_provider_arn
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
   cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
 
   # 관리할 도메인
-  domain_filters            = var.domain_name
+  domain_filters            = [
+    "grafana.${var.domain_name}"
+  ]
 
   # Route53 Hosted Zone
   hosted_zone_id            = aws_route53_zone.main.zone_id
   # hosted_zone_arn         = "arn:aws:route53:::hostedzone/XXXXXXXX"
 
   sources                   = ["ingress"]   # ingress 기반 레코드 관리
-  policy                    = "upsert-only" # 삭제 대신 갱신만
+  policy                    = "sync" # 삭제 직접 관리 시: "upsert-only"
   registry                  = "txt"
   chart_version             = "1.15.0"
 
-  common_tags = var.common_tags
+  tags = var.common_tags
 }
 # Grafana 외부 접속용 도메인(grafana.goteego.store)
 # resource "aws_route53_record" "grafana" {
