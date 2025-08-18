@@ -109,6 +109,19 @@ resource "time_sleep" "wait_rds_ready" {
   create_duration = "90s"
 }
 
+# pgvector 설치 (CREATE EXTENSION vector)
+resource "postgresql_extension" "pgvector" {
+  name     = "vector"            # pgvector의 실제 extension 이름은 'vector'
+  schema   = "public"
+  database = var.db_name
+
+  # RDS가 준비된 뒤에 실행
+  depends_on = [
+    time_sleep.wait_rds_ready,
+    aws_db_instance.this
+  ]
+}
+
 resource "postgresql_grant" "exporter_connect" {
   depends_on  = [postgresql_role.exporter]
   database    = var.db_name
