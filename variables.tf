@@ -257,6 +257,12 @@ variable "redis_auth_token" {
 }
 
 # Monitoring variables ==========
+variable "monitoring_namespace" {
+  description = "네임스페이스 이름 (Prometheus, Grafana, Loki 등 공통 모니터링 컴포넌트)"
+  type        = string
+  default     = "monitoring"
+}
+
 ## Alert Emails =========
 variable "alert_emails" {
   type        = list(string)

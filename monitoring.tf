@@ -1,10 +1,10 @@
 # Monitoring namespace
 resource "kubernetes_namespace" "monitoring" {
   metadata {
-    name = "monitoring"
+    name = var.monitoring_namespace
 
     labels = {
-      "name"                         = "monitoring"
+      "name"                         = var.monitoring_namespace
       "app.kubernetes.io/managed-by" = "terraform"
     }
   }
@@ -14,7 +14,7 @@ resource "kubernetes_namespace" "monitoring" {
 
 module "prometheus" {
   source            = "./modules/monitoring/prometheus"
-  namespace         = "monitoring"
+  namespace         = var.monitoring_namespace
   chart_version     = "56.6.2"
 
   # Postgres Exporter 추가 설정
@@ -38,7 +38,7 @@ module "prometheus" {
 
 module "grafana" {
   source                 = "./modules/monitoring/grafana"
-  namespace              = "monitoring"
+  namespace              = var.monitoring_namespace
   chart_version          = "7.3.9"
   alb_security_group_id    = module.alb.alb_security_group_id
   node_group_security_group_id   = module.eks.node_group_security_group_id
