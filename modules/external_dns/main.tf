@@ -108,14 +108,14 @@ resource "helm_release" "external_dns" {
   force_update    = true
 
   # ServiceAccount: IRSA로 만든 SA 재사용
-  set {
-    name  = "serviceAccount.create"
-    value = "false"
-  }
-  set {
-    name  = "serviceAccount.name"
-    value = kubernetes_service_account.externaldns.metadata[0].name
-  }
+  # set {
+  #   name  = "serviceAccount.create"
+  #   value = "false"
+  # }
+  # set {
+  #   name  = "serviceAccount.name"
+  #   value = kubernetes_service_account.externaldns.metadata[0].name
+  # }
 
   values = [
     yamlencode({
@@ -151,7 +151,7 @@ resource "helm_release" "external_dns" {
 
   depends_on = [
     aws_iam_role_policy_attachment.attach,
-    kubernetes_service_account.externaldns,
+    # kubernetes_service_account.externaldns,
   ]
 
   lifecycle {
