@@ -131,6 +131,10 @@ resource "helm_release" "external_dns" {
     name  = "aws.zoneType"
     value = "public"
   }
+  set {
+    name  = "aws.assumeRoleArn"
+    value = aws_iam_role.externaldns.arn
+  }
 
   # 동작 튜닝 (모두 문자열로!)
   set {

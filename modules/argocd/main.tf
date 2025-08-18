@@ -28,6 +28,7 @@ resource "helm_release" "argocd" {
             "alb.ingress.kubernetes.io/healthcheck-path" = "/healthz"
             "alb.ingress.kubernetes.io/success-codes"    = "200-399"
             "alb.ingress.kubernetes.io/security-groups"  = var.alb_security_group_id
+            "external-dns.alpha.kubernetes.io/hostname"  = var.ingress_hostname
           }
           hostname = length(var.ingress_hostname) > 0 ? var.ingress_hostname : null
           hosts    = length(var.ingress_hosts) > 0 ? var.ingress_hosts : null
