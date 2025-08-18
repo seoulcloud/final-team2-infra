@@ -47,6 +47,7 @@ output "backend_api_irsa_role_arn" {
 
 output "kubernetes_secrets_status" {
   description = "Kubernetes Secrets creation status"
+  sensitive   = true
   value = {
     dev_namespace    = module.kubernetes_secrets_dev.namespace_name
     prod_namespace   = module.kubernetes_secrets_prod.namespace_name
