@@ -344,8 +344,8 @@ module "acm_cert" {
   subject_alternative_names = var.subject_alternative_names
 }
 
-# ACM DNS 검증용 레코드 생성 
-module "acm_dns_validation" {
+# ACM DNS 검증용 레코드 생성 (us-east-1 for CloudFront)
+module "acm_us_east_1_dns_validation" {
   source    = "./modules/acm_dns_validation"
   providers = { aws = aws.virginia }
 
@@ -359,50 +359,7 @@ module "acm_dns_validation" {
   ]
 }
 
-# ACM for ALB/EKS in ap-northeast-2 (wildcard)
-module "acm_cert_kor" {
-  source    = "./modules/acm_certificate"
-  providers = { aws = aws } # 기본 provider (ap-northeast-2)
 
-  domain_name               = var.domain_name
-  subject_alternative_names = ["*.${var.domain_name}", "dev.api.${var.domain_name}", "argocd.${var.domain_name}"]
-}
-
-module "acm_kor_dns_validation" {
-  source    = "./modules/acm_dns_validation"
-  providers = { aws = aws } # 기본 provider (ap-northeast-2)
-
-  certificate_arn                       = module.acm_cert_kor.certificate_arn
-  zone_id                               = aws_route53_zone.main.zone_id
-  certificate_domain_validation_options = module.acm_cert_kor.domain_validation_options
-
-  depends_on = [
-    aws_route53_zone.main,
-    module.acm_cert_kor
-  ]
-}
-
-# ExternalDNS to manage Route53 records from Ingress
-module "external_dns" {
-  source = "./modules/external-dns"
-
-  project_name = var.project_name
-  environment  = var.environment
-  namespace    = "kube-system"
-
-  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
-  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
-
-  domain_filters = [var.domain_name]
-  hosted_zone_id = aws_route53_zone.main.zone_id
-  sources        = ["ingress"]
-  policy         = "upsert-only"
-  registry       = "txt"
-
-  common_tags = var.common_tags
-
-  depends_on = [module.eks, aws_route53_zone.main]
-}
 
 # Backend API IRSA
 module "backend_api_irsa" {
@@ -571,61 +528,6 @@ resource "aws_ssm_parameter" "redis_auth_token" {
   tags      = var.common_tags
 }
 
-# Kubernetes Secrets Module - Dev 환경
-module "kubernetes_secrets_dev" {
-  source = "./modules/kubernetes_secrets"
-
-  namespace_name = "backend-dev"
-  namespace_labels = {
-    environment = "dev"
-    app         = "backend-api"
-  }
-
-  secret_name = "db-secrets"
-  secret_labels = {
-    environment = "dev"
-    app         = "backend-api"
-  }
-
-  db_password_postgresql = var.db_password_postgresql
-  db_password_mongodb    = var.db_password_mongodb
-  redis_auth_token       = var.redis_auth_token
-
-  eks_dependency = module.eks
-  ssm_parameters_dependency = [
-    aws_ssm_parameter.db_password_postgresql,
-    aws_ssm_parameter.db_password_mongodb,
-    aws_ssm_parameter.redis_auth_token
-  ]
-}
-
-# Kubernetes Secrets Module - Prod 환경
-module "kubernetes_secrets_prod" {
-  source = "./modules/kubernetes_secrets"
-
-  namespace_name = "backend-prod"
-  namespace_labels = {
-    environment = "prod"
-    app         = "backend-api"
-  }
-
-  secret_name = "db-secrets"
-  secret_labels = {
-    environment = "prod"
-    app         = "backend-api"
-  }
-
-  db_password_postgresql = var.db_password_postgresql
-  db_password_mongodb    = var.db_password_mongodb
-  redis_auth_token       = var.redis_auth_token
-
-  eks_dependency = module.eks
-  ssm_parameters_dependency = [
-    aws_ssm_parameter.db_password_postgresql,
-    aws_ssm_parameter.db_password_mongodb,
-    aws_ssm_parameter.redis_auth_token
-  ]
-}
 # ========================================
 # Kubernetes Applications (cert-manager & ArgoCD)
 # ========================================
@@ -689,7 +591,7 @@ module "argocd" {
   alb_security_group_id = module.alb.alb_security_group_id
 
   # TLS settings
-  certificate_arn  = module.acm_cert_kor.certificate_arn
+  certificate_arn  = module.acm_cert.certificate_arn
   ssl_redirect     = "443"
   insecure         = false
   ingress_hostname = "argocd.${var.domain_name}"
@@ -699,7 +601,7 @@ module "argocd" {
     module.eks,
     kubernetes_namespace.argocd,
     module.alb,
-    module.acm_kor_dns_validation
+    module.acm_us_east_1_dns_validation
   ]
 }
 

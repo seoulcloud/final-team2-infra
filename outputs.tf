@@ -16,7 +16,7 @@ output "acm_certificate_arn_us_east_1" {
 
 output "acm_certificate_arn_ap_northeast_2" {
   description = "ACM certificate ARN for ALB/Ingress (ap-northeast-2)"
-  value       = module.acm_cert_kor.certificate_arn
+  value       = module.acm_cert.certificate_arn
 }
 
 # Output important values
@@ -42,11 +42,7 @@ output "ssm_session_manager_url" {
 
 output "backend_api_irsa_role_arn" {
   description = "Backend API IRSA Role ARN"
-<<<<<<< HEAD
-  value       = module.backend_api_irsa.iam_role_arn
-=======
   value       = module.backend_api_irsa.backend_api_iam_role_arn
->>>>>>> 5121c9c09cb4a9aee65111cafa45948bea01d5e1
 }
 
 output "kubernetes_secrets_status" {
