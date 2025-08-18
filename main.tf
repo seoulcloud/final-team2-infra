@@ -577,7 +577,7 @@ module "alb" {
   depends_on = [
     module.eks,
     module.vpc,
-    module.acm_cert
+    module.acm_cert_kor
   ]
 }
 
