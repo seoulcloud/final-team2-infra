@@ -104,7 +104,9 @@ resource "helm_release" "external_dns" {
   wait       = true
   timeout    = 900
   atomic     = true
-
+  cleanup_on_fail = true
+  force_update    = true
+  
   # ServiceAccount: IRSA로 만든 SA 재사용
   set {
     name  = "serviceAccount.create"
@@ -141,4 +143,14 @@ resource "helm_release" "external_dns" {
     aws_iam_role_policy_attachment.attach,
     kubernetes_service_account.externaldns,
   ]
+
+  # ❗ Helm provider가 apply 중 내부적으로 채우는 computed 필드로 인해
+  #    “metadata was known → unknown” 오류가 날 수 있어 무시
+  lifecycle {
+    ignore_changes = [
+      metadata,                 # provider가 채우는 computed 메타데이터
+      manifest,                 # 일부 버전에서 동적 렌더링이 달라질 수 있음
+      status,                   # 상태 필드도 종종 변함
+    ]
+  }
 }
