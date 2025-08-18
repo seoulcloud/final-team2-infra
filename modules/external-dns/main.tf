@@ -94,7 +94,7 @@ resource "helm_release" "external_dns" {
   version    = var.chart_version
   namespace  = var.namespace
 
-# ServiceAccount: IRSA로 만든 SA 재사용
+  # ServiceAccount: IRSA로 만든 SA 재사용
   set {
     name  = "serviceAccount.create"
     value = "false"
@@ -111,11 +111,11 @@ resource "helm_release" "external_dns" {
   }
   set {
     name  = "policy"
-    value = var.policy                   # 예: "upsert-only"
+    value = var.policy # 예: "upsert-only"
   }
   set {
     name  = "registry"
-    value = var.registry                 # 예: "txt"
+    value = var.registry # 예: "txt"
   }
   set {
     name  = "txtOwnerId"
@@ -139,7 +139,7 @@ resource "helm_release" "external_dns" {
   }
   set {
     name  = "triggerLoopOnEvent"
-    value = tostring(true)               # bool 넣지 말고 문자열/ tostring 사용
+    value = tostring(true) # bool 넣지 말고 문자열/ tostring 사용
   }
   set {
     name  = "logLevel"
@@ -148,7 +148,7 @@ resource "helm_release" "external_dns" {
 
   # sources[] 배열
   dynamic "set" {
-    for_each = var.sources               # 예: ["ingress"]
+    for_each = var.sources # 예: ["ingress"]
     content {
       name  = "sources[${set.key}]"
       value = set.value
@@ -157,7 +157,7 @@ resource "helm_release" "external_dns" {
 
   # domainFilters[] 배열
   dynamic "set" {
-    for_each = var.domain_filters        # 예: ["goteego.store"]
+    for_each = var.domain_filters # 예: ["goteego.store"]
     content {
       name  = "domainFilters[${set.key}]"
       value = set.value

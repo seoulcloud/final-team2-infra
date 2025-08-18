@@ -1,18 +1,18 @@
 resource "helm_release" "argocd" {
-  name       = "argocd"
-  repository = "https://argoproj.github.io/argo-helm"
-  chart      = "argo-cd"
-  version    = var.chart_version
-  namespace  = var.namespace
-  timeout    = var.timeout
+  name         = "argocd"
+  repository   = "https://argoproj.github.io/argo-helm"
+  chart        = "argo-cd"
+  version      = var.chart_version
+  namespace    = var.namespace
+  timeout      = var.timeout
   force_update = true
   reuse_values = false
 
   values = [
     yamlencode({
       server = {
-        service     = { type = "ClusterIP" }
-        extraArgs   = var.insecure ? ["--insecure"] : []
+        service      = { type = "ClusterIP" }
+        extraArgs    = var.insecure ? ["--insecure"] : []
         replicaCount = 1
         ingress = {
           enabled          = true
