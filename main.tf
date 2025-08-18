@@ -1,10 +1,14 @@
 # Team Account - Main Terraform Configuration
 
 ##test
-# Data source for availability zones
+# Data sources
 data "aws_availability_zones" "available" {
   state = "available"
 }
+
+data "aws_region" "current" {}
+
+data "aws_caller_identity" "current" {}
 
 # VPC Module
 module "vpc" {
