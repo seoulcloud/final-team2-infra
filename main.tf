@@ -416,11 +416,8 @@ module "backend_api_irsa" {
   cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
   cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
 
-  policy_arns = [
-    "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/${var.environment}/*"
-  ]
-
-  common_tags = var.common_tags
+  create_backend_api_role = true
+  common_tags             = var.common_tags
 
   depends_on = [module.eks]
 }
@@ -633,7 +630,6 @@ module "kubernetes_secrets_prod" {
 # Kubernetes Applications (cert-manager & ArgoCD)
 # ========================================
 
-
 # ArgoCD namespace
 resource "kubernetes_namespace" "argocd" {
   metadata {
@@ -745,24 +741,6 @@ resource "aws_security_group_rule" "allow_alb_to_nodes_tls_443" {
 
 
 # ALB Module Outputs moved to outputs.tf
-
-# Backend API IRSA Module
-module "backend_api_irsa" {
-  source = "./modules/irsa"
-
-  name      = "backend-api"
-  namespace = "backend-prod" # 기본값으로 prod 사용
-
-  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
-  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
-  project_name              = var.project_name
-  environment               = var.environment
-
-  create_backend_api_role = true
-  common_tags             = var.common_tags
-
-  depends_on = [module.eks]
-}
 
 # Frontend Deploy
 module "github_oidc_roles" {
