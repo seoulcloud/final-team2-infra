@@ -40,8 +40,8 @@ variable "certificate_arn" {
 
 variable "ssl_redirect" {
   type        = string
-  description = "Port to redirect HTTP to HTTPS"
-  default     = "443"
+  description = "Port to redirect HTTP to HTTPS. Set to 'false' to disable SSL redirect"
+  default     = "false"
 }
 
 variable "insecure" {

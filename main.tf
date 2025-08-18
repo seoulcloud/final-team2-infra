@@ -592,7 +592,7 @@ module "argocd" {
 
   # TLS settings
   certificate_arn  = module.acm_cert_kor.certificate_arn
-  ssl_redirect     = "443"
+  ssl_redirect     = "false"
   insecure         = false
   ingress_hostname = "argocd.${var.domain_name}"
   ingress_hosts    = ["argocd.${var.domain_name}"]
