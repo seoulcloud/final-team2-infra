@@ -9,8 +9,6 @@ resource "helm_release" "prometheus" {
  repository = "https://prometheus-community.github.io/helm-charts"
  version    = var.chart_version
 
- # 네임스페이스가 없다면 생성
- create_namespace = true
  # 사용자 정의 values.yaml 값 적용
  values = [file("${path.module}/values.yaml")]
 

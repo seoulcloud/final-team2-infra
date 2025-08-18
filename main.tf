@@ -232,26 +232,6 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
   ]
 }
 
-
-# s3_backend (prod 환경)  -> 백엔드에서 s3 사용 안함
-# module "s3_backend_prod" {
-#   source         = "./modules/s3_backend"
-#   prefix         = "prod"
-#   bucket_name    = "${var.project_name}-backend"
-#   lifecycle_days = 30
-# }
-
-# output "frontend_bucket_name" {
-#   value = module.s3_frontend_prod.bucket_name
-# }
-
-# output "backend_bucket_name" {
-#   value = module.s3_backend_prod.bucket_name
-# }
-
-
-
-
 #========================
 
 #cloud_front
