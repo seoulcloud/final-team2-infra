@@ -21,11 +21,11 @@ variable "grafana_admin_password" {
   sensitive   = true
 }
 
-variable "alb_sg_id" {
+variable "alb_security_group_id" {
   description = "ALB SG ID"
 }
 
-variable "node_sg_id" {
+variable "node_group_security_group_id" {
   description = "EKS NodeGroup SG ID"
 }
 

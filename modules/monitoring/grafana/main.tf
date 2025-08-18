@@ -21,7 +21,7 @@ resource "helm_release" "grafana" {
   set {
     # 점(.)은 키 경로 구분자라서 escape 필요
     name  = "ingress.annotations.alb\\.ingress\\.kubernetes\\.io/security-groups"
-    value = var.alb_sg_id
+    value = var.alb_security_group_id
   }
   # Prometheus ClusterIP 동적 세팅
   set {
@@ -38,8 +38,8 @@ resource "aws_security_group_rule" "alb_to_nodes_grafana" {
   from_port                = var.grafana_target_port
   to_port                  = var.grafana_target_port
   protocol                 = "tcp"
-  source_security_group_id = var.alb_sg_id
-  security_group_id        = var.node_sg_id
+  source_security_group_id = var.alb_security_group_id
+  security_group_id        = var.node_group_security_group_id
   description              = "Allow ALB to reach Grafana"
 }
 

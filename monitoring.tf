@@ -1,3 +1,40 @@
+# Monitoring namespace
+resource "kubernetes_namespace" "monitoring" {
+  metadata {
+    name = "monitoring"
+
+    labels = {
+      "name"                         = "monitoring"
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
+  }
+
+  depends_on = [module.eks]
+}
+
+module "prometheus" {
+  source            = "./modules/monitoring/prometheus"
+  namespace         = "monitoring"
+  chart_version     = "56.6.2"
+  depends_on_module = [ 
+    module.eks,
+    kubernetes_namespace.monitoring,
+    module.alb
+  ]
+}
+
+module "grafana" {
+  source                 = "./modules/monitoring/grafana"
+  namespace              = "monitoring"
+  chart_version          = "7.3.9"
+  alb_security_group_id    = module.alb.alb_security_group_id
+  node_group_security_group_id   = module.eks.node_group_security_group_id
+  depends_on_module      = [
+    module.prometheus
+  ]
+  grafana_admin_password = var.grafana_admin_password
+}
+
 # RDS CPU 모니터링
 module "monitoring_rds_cpu" {
   source          = "./modules/monitoring"
@@ -20,23 +57,6 @@ module "monitoring_rds_cpu" {
 
   tags = var.common_tags
 }
-
-module "prometheus" {
-  source            = "./modules/monitoring/prometheus"
-  namespace         = "monitoring"
-  chart_version     = "56.6.2"
-  depends_on_module = module.eks
-}
-
-# module "grafana" {
-#   source                 = "./modules/monitoring/grafana"
-#   namespace              = "monitoring"
-#   chart_version          = "7.3.9"
-#   alb_sg_id    = module.alb.alb_sg_id
-#   node_sg_id   = module.eks.node_group_security_group_id
-#   depends_on_module      = module.prometheus
-#   grafana_admin_password = var.grafana_admin_password
-# }
 
 # # EKS CPU 모니터링
 # module "monitoring_eks_cpu" {
