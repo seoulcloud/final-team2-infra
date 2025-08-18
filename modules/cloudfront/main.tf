@@ -33,10 +33,7 @@ resource "aws_cloudfront_distribution" "this" {
     }
   }
 
-  aliases = [
-    "goteego.store",
-    "www.goteego.store"
-  ]
+  aliases = var.aliases
 
   viewer_certificate {
     acm_certificate_arn            = var.acm_certificate_arn

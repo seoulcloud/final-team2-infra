@@ -33,3 +33,9 @@ variable "acm_certificate_arn" {
   type        = string
   description = "ACM certificate ARN in us-east-1"
 }
+
+variable "aliases" {
+  type        = list(string)
+  description = "Alternate domain names (CNAMEs) for the distribution"
+  default     = []
+}
