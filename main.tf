@@ -161,26 +161,7 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
   depends_on = [module.documentdb]
 }
 
-# Output important values
-output "vpc_id" {
-  description = "VPC ID"
-  value       = module.vpc.vpc_id
-}
-
-output "eks_cluster_endpoint" {
-  description = "EKS Cluster Endpoint"
-  value       = module.eks.cluster_endpoint
-}
-
-output "eks_cluster_name" {
-  description = "EKS Cluster Name"
-  value       = module.eks.cluster_name
-}
-
-output "ssm_session_manager_url" {
-  description = "SSM Session Manager Connection Guide"
-  value       = "Use 'aws ssm start-session --target <instance-id> --profile default' to connect"
-}
+# Output important values moved to outputs.tf
 
 
 # OAC ===========
@@ -306,10 +287,6 @@ resource "aws_route53_zone" "main" {
   name = var.domain_name # "goteego.store" 대신 변수 사용
 }
 
-# output "zone_id" {
-#   value = aws_route53_zone.main.zone_id
-# }
-
 # ACM 인증서 생성 (us-east-1 리전 지정 provider)
 module "acm_cert" {
   source    = "./modules/acm_certificate"
@@ -318,10 +295,6 @@ module "acm_cert" {
   domain_name               = var.domain_name
   subject_alternative_names = var.subject_alternative_names
 }
-
-# output "certificate_arn" {
-#   value = module.acm_cert.certificate_arn
-# }
 
 # ACM DNS 검증용 레코드 생성 
 module "acm_dns_validation" {
@@ -430,23 +403,6 @@ resource "aws_ssm_parameter" "redis_auth_token" {
   overwrite  = true
   tags       = var.common_tags
 }
-# ========================================
-# Kubernetes Applications (cert-manager & ArgoCD)
-# ========================================
-
-# cert-manager namespace (미사용: TLS 비활성화로 주석 처리)
-# resource "kubernetes_namespace" "cert_manager" {
-#   metadata {
-#     name = "cert-manager"
-#
-#     labels = {
-#       "name"                         = "cert-manager"
-#       "app.kubernetes.io/managed-by" = "terraform"
-#     }
-#   }
-#
-#   depends_on = [module.eks]
-# }
 
 # ArgoCD namespace
 resource "kubernetes_namespace" "argocd" {
@@ -462,24 +418,7 @@ resource "kubernetes_namespace" "argocd" {
   depends_on = [module.eks]
 }
 
-# IRSA for cert-manager (미사용: TLS 비활성화로 주석 처리)
-# module "cert_manager_irsa" {
-#   source = "./modules/irsa"
-#
-#   name                      = "cert-manager"
-#   namespace                 = kubernetes_namespace.cert_manager.metadata[0].name
-#   cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
-#   cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
-#   project_name              = var.project_name
-#   environment               = var.environment
-#   hosted_zone_arn           = aws_route53_zone.main.arn
-#   common_tags               = var.common_tags
-#
-#   depends_on = [
-#     module.eks,
-#     kubernetes_namespace.cert_manager
-#   ]
-# }
+
 
 # ALB Module
 module "alb" {
@@ -516,20 +455,6 @@ module "alb" {
   ]
 }
 
-# cert-manager Helm chart (미사용: TLS 비활성화로 주석 처리)
-# module "certmanager" {
-#   source               = "./modules/certmanager"
-#   namespace            = kubernetes_namespace.cert_manager.metadata[0].name
-#   chart_version        = "v1.13.3"
-#   service_account_name = module.cert_manager_irsa.service_account_name
-#
-#   depends_on = [
-#     module.cert_manager_irsa,
-#     kubernetes_namespace.cert_manager
-#   ]
-# }
-
-
 # ArgoCD Helm chart
 module "argocd" {
   source        = "./modules/argocd"
@@ -546,61 +471,6 @@ module "argocd" {
   ]
 }
 
-# ArgoCD Ingress hostname (Kubernetes data source)
-# data "kubernetes_ingress_v1" "argocd" {
-#   metadata {
-#     name      = "argocd-server"
-#     namespace = kubernetes_namespace.argocd.metadata[0].name
-#   }
-#
-#   depends_on = [
-#     module.argocd
-#   ]
-# }
-
-# Safely extract ALB hostname (may be empty on first apply)
-# locals {
-#   argocd_ingress_hostname = try(
-#     data.kubernetes_ingress_v1.argocd.status[0].load_balancer[0].ingress[0].hostname,
-#     null
-#   )
-# }
-
-# Route53 CNAME for ArgoCD: argocd.<domain> → ALB hostname
-# resource "aws_route53_record" "argocd" {
-#   count   = local.argocd_ingress_hostname != null && length(local.argocd_ingress_hostname) > 0 ? 1 : 0
-#   zone_id = aws_route53_zone.main.zone_id
-#   name    = "argocd.${var.domain_name}"
-#   type    = "CNAME"
-#   ttl     = 300
-#
-#   records = [local.argocd_ingress_hostname]
-#
-#   depends_on = [
-#     aws_route53_zone.main,
-#     module.argocd
-#   ]
-# }
-
-# Route53 CNAME for prod API: api.<domain> → provided hostname (conditional)
-# resource "aws_route53_record" "api_prod" {
-#   count   = length(var.prod_backend_hostname) > 0 ? 1 : 0
-#   zone_id = aws_route53_zone.main.zone_id
-#   name    = "api.${var.domain_name}"
-#   type    = "CNAME"
-#   ttl     = 300
-#   records = [var.prod_backend_hostname]
-# }
-
-# Route53 CNAME for dev API: dev.api.<domain> → provided hostname (conditional)
-# resource "aws_route53_record" "api_dev" {
-#   count   = length(var.dev_backend_hostname) > 0 ? 1 : 0
-#   zone_id = aws_route53_zone.main.zone_id
-#   name    = "dev.api.${var.domain_name}"
-#   type    = "CNAME"
-#   ttl     = 300
-#   records = [var.dev_backend_hostname]
-# }
 # ALB → EKS NodeGroup SG: ArgoCD 서버 targetPort(8080) 허용
 resource "aws_security_group_rule" "allow_alb_to_nodes_argo_8080" {
   type                     = "ingress"
@@ -617,26 +487,28 @@ resource "aws_security_group_rule" "allow_alb_to_nodes_argo_8080" {
   ]
 }
 
+# ALB → EKS NodeGroup SG: TLS(443) 허용
+resource "aws_security_group_rule" "allow_alb_to_nodes_tls_443" {
+  type                     = "ingress"
+  description              = "Allow ALB to reach EKS nodes on TLS port 443"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = module.eks.node_group_security_group_id
+  source_security_group_id = module.alb.alb_security_group_id
+
+  depends_on = [
+    module.alb,
+    module.eks
+  ]
+}
+
 # EKS 클러스터와 Helm 차트는 Terraform으로 자동 배포됩니다
 # GitOps 설정만 수동으로 진행하면 됩니다
 
 
 
-# ALB Module Outputs
-output "alb_controller_role_arn" {
-  description = "AWS Load Balancer Controller IAM Role ARN"
-  value       = module.alb.aws_load_balancer_controller_role_arn
-}
-
-output "alb_security_group_id" {
-  description = "ALB Security Group ID"
-  value       = module.alb.alb_security_group_id
-}
-
-output "alb_controller_status" {
-  description = "AWS Load Balancer Controller installation status"
-  value       = "AWS Load Balancer Controller installed with IRSA support"
-}
+# ALB Module Outputs moved to outputs.tf
 
 # Frontend Deploy
 module "github_oidc_roles" {
