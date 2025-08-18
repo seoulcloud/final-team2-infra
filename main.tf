@@ -99,6 +99,7 @@ module "rds" {
   # DB 정보
   db_name              = var.project_name
   db_username          = var.project_name
+  db_exporter_username = var.rds_db_exporter_user
   db_password          = var.db_password_postgresql
   parameter_group_name = "default.postgres14"
 
@@ -109,6 +110,8 @@ module "rds" {
   # 네트워크 설정
   db_subnet_group_name   = module.vpc.db_subnet_group_name
   vpc_security_group_ids = [module.vpc.postgresql_sg_id]
+  postgresql_security_group_id = module.vpc.postgresql_sg_id
+  node_group_security_group_id = module.eks.node_group_security_group_id
 
   # 태그
   tags = var.common_tags

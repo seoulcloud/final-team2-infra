@@ -264,6 +264,12 @@ variable "alert_emails" {
   default     = [] # 혹은 null로 해도 무방
 }
 
+variable "rds_db_exporter_user" {
+  description = "RDS Monitoring용 DB 사용자 이름"
+  type = string
+  default = "goteego_monitoring"
+}
+
 ## Grafana admin password ==========
 variable "grafana_admin_password" {
   description = "Grafana admin 비밀번호"

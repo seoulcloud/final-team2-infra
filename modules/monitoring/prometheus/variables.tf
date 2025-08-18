@@ -18,3 +18,38 @@ variable "depends_on_module" {
   type        = any
   default     = null
 }
+
+variable "rds_endpoint" {
+  description = "RDS(Postgres) endpoint (예: mydb.abc123.ap-northeast-2.rds.amazonaws.com)"
+  type        = string
+}
+
+variable "rds_db_name" {
+  description = "애플리케이션이 사용하는 Postgres DB명"
+  type        = string
+}
+
+variable "rds_db_exporter_user" {
+  description = "postgres_exporter 접속용 계정"
+  type        = string
+}
+
+variable "rds_db_exporter_password" {
+  description = "postgres_exporter 접속용 비밀번호"
+  type        = string
+  sensitive   = true
+}
+
+variable "postgres_exporter_chart_version" {
+  description = "prometheus-postgres-exporter Helm 차트 버전"
+  type        = string
+  default     = "6.1.0"
+}
+
+variable "service_monitor_labels" {
+  description = "ServiceMonitor 라벨 (kube-prometheus-stack가 선택하도록 release 라벨 등 맞추기)"
+  type        = map(string)
+  default     = {
+    release = "kube-prometheus-stack"
+  }
+}

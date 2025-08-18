@@ -16,6 +16,19 @@ module "prometheus" {
   source            = "./modules/monitoring/prometheus"
   namespace         = "monitoring"
   chart_version     = "56.6.2"
+
+  # Postgres Exporter 추가 설정
+  postgres_exporter_chart_version = "6.1.0"
+  rds_endpoint                    = module.rds.db_instance_endpoint
+  rds_db_name                     = var.project_name
+  rds_db_exporter_user            = var.rds_db_exporter_user
+  rds_db_exporter_password        = var.db_password_postgresql
+
+  # ServiceMonitor 라벨 (kube-prometheus-stack values.yaml에서 release 값 확인)
+  service_monitor_labels = {
+    release = "kube-prometheus-stack"
+  }
+
   depends_on_module = [ 
     module.eks,
     kubernetes_namespace.monitoring,

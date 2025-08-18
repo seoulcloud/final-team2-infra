@@ -1,3 +1,16 @@
+provider "postgresql" {
+  host            = aws_db_instance.this.address
+  port            = 5432
+  database        = var.db_name
+  username        = var.db_username       # RDS 마스터
+  password        = var.db_password
+  sslmode         = "require"             # RDS는 SSL 권장
+  connect_timeout = 15
+
+  # 리소스 생성 순서 보장을 위해 명시적 depends_on
+  # (provider 블록에는 depends_on을 직접 못 걸어서 아래 리소스에 걸어둠)
+}
+
 resource "aws_db_instance" "this" {
   # RDS 인스턴스 식별자 (AWS 콘솔에 표시되는 이름)
   identifier = "${var.project_name}-${var.environment}-postgres"
@@ -65,4 +78,50 @@ resource "aws_iam_role" "rds_enhanced_monitoring" {
 resource "aws_iam_role_policy_attachment" "rds_enhanced_monitoring" {
   role       = aws_iam_role.rds_enhanced_monitoring.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
+
+resource "postgresql_role" "exporter" {
+  depends_on = [time_sleep.wait_rds_ready]
+
+  name     = var.db_exporter_username
+  login    = true
+  password = var.db_password
+
+  # 필요시 패스워드 만료/정책 옵션들 추가 가능
+  # valid_until = "infinity"
+}
+
+resource "postgresql_grant_role" "exporter_pg_monitor" {
+  depends_on = [postgresql_role.exporter]
+
+  # 부여받는 쪽(= 우리 사용자/롤)
+  role             = postgresql_role.exporter.name
+
+  # 부여할 롤
+  grant_role       = "pg_monitor"
+
+  # ADMIN OPTION 불필요하면 false
+  with_admin_option = false
+}
+
+resource "time_sleep" "wait_rds_ready" {
+  depends_on      = [aws_db_instance.this]
+  create_duration = "90s"
+}
+
+resource "postgresql_grant" "exporter_connect" {
+  depends_on  = [postgresql_role.exporter]
+  database    = var.db_name
+  role        = postgresql_role.exporter.name
+  object_type = "database"
+  privileges  = ["CONNECT"]
+}
+
+resource "aws_security_group_rule" "allow_prometheus_to_rds" {
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  security_group_id        = var.postgresql_security_group_id          # RDS SG
+  source_security_group_id = var.node_group_security_group_id  # EKS 노드 SG (Prometheus가 붙는 곳)
 }
