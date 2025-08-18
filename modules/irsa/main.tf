@@ -200,3 +200,54 @@ resource "kubernetes_service_account" "redis_sa" {
   }
 }
 
+# Backend API 전용 IRSA 역할 생성
+resource "aws_iam_role" "backend_api_irsa" {
+  count = var.create_backend_api_role ? 1 : 0
+
+  name = "${var.project_name}-${var.environment}-backend-api-ssm-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = var.cluster_oidc_provider_arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "${replace(var.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:backend-dev:backend-api-sa"
+          "${replace(var.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:backend-prod:backend-api-sa"
+        }
+      }
+    }]
+  })
+
+  tags = var.common_tags
+}
+
+# Backend API용 SSM 파라미터 접근 정책
+resource "aws_iam_role_policy" "backend_api_ssm_policy" {
+  count = var.create_backend_api_role ? 1 : 0
+
+  name = "${var.project_name}-${var.environment}-backend-api-ssm-policy"
+  role = aws_iam_role.backend_api_irsa[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath"
+        ]
+        Resource = [
+          "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/${var.environment}/*"
+        ]
+      }
+    ]
+  })
+}
+
