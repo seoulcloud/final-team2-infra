@@ -54,7 +54,7 @@ output "helm_values" {
     region = data.aws_region.current.name
     vpcId  = var.vpc_id
   }
-} 
+}
 
 output "alb_sg_id" {
   description = "ALB(Security Group) ID"

@@ -341,7 +341,7 @@ module "acm_cert" {
   providers = { aws = aws.virginia }
 
   domain_name               = var.domain_name
-  subject_alternative_names = var.subject_alternative_names
+  subject_alternative_names = concat(var.subject_alternative_names, ["www.${var.domain_name}"])
 }
 
 # ACM DNS 검증용 레코드 생성 (us-east-1 for CloudFront)
@@ -569,7 +569,7 @@ module "alb" {
   # Domain Configuration
   domain_name     = var.domain_name
   zone_id         = aws_route53_zone.main.zone_id
-  certificate_arn = module.acm_cert.certificate_arn
+  certificate_arn = module.acm_cert_kor.certificate_arn
 
   # Tags
   common_tags = var.common_tags
@@ -591,7 +591,7 @@ module "argocd" {
   alb_security_group_id = module.alb.alb_security_group_id
 
   # TLS settings
-  certificate_arn  = module.acm_cert.certificate_arn
+  certificate_arn  = module.acm_cert_kor.certificate_arn
   ssl_redirect     = "443"
   insecure         = false
   ingress_hostname = "argocd.${var.domain_name}"
@@ -601,7 +601,7 @@ module "argocd" {
     module.eks,
     kubernetes_namespace.argocd,
     module.alb,
-    module.acm_us_east_1_dns_validation
+    module.acm_kor_dns_validation
   ]
 }
 

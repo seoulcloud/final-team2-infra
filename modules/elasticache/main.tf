@@ -15,7 +15,7 @@ resource "aws_elasticache_subnet_group" "this" {
 # Redis Replication Group
 resource "aws_elasticache_replication_group" "this" {
   replication_group_id    = "${var.project_name}-${var.environment}-redis"
-  replicas_per_node_group = var.num_cache_nodes > 1 ? (var.num_cache_nodes - 1) : 0                            # 마스터 노드 제외한 복제 노드 개수
+  replicas_per_node_group = var.num_cache_nodes > 1 ? (var.num_cache_nodes - 1) : 0                          # 마스터 노드 제외한 복제 노드 개수
   description             = "ElastiCache Redis replication group for ${var.project_name} ${var.environment}" # 추가
   engine                  = "redis"
   engine_version          = "7.0"
