@@ -20,7 +20,7 @@ resource "kubernetes_config_map" "grafana_dashboards" {
 
   # K8s 이름 63자 제한 대비: md5 해시로 유니크 보장 + 전체 substr
   metadata {
-    name      = substr("grafana-dashboard-${substr(md5(each.key),0,6)}-${local.dash_safe[each.key]}", 0, 63)
+    name      = replace(substr("grafana-dashboard-${substr(md5(each.key),0,6)}-${local.dash_safe[each.key]}", 0, 63), "-$", "")
     namespace = var.namespace
     labels = {
       grafana_dashboard = "1" # Grafana sidecar가 보는 라벨

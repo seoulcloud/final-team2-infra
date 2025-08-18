@@ -48,6 +48,21 @@ module "grafana" {
   grafana_admin_password = var.grafana_admin_password
 }
 
+module "app_metrics_backend" {
+  source = "./modules/monitoring/app_metrics"
+
+  namespace           = "backend-dev"
+  app_name            = "backend-api"
+  selector_label_key  = "app"                    # 파드 라벨 키
+  service_port        = 8080
+  service_port_name   = "http"
+  prom_path           = "/actuator/prometheus"
+  prom_release_label  = "kube-prometheus-stack"   # 너의 kube-prometheus-stack 라벨값과 일치시켜!
+
+  # kube-prometheus-stack 헬름릴리즈를 넘겨 CRD 선적용 보장
+  depends_on = [module.prometheus]
+}
+
 # RDS CPU 모니터링
 module "monitoring_rds_cpu" {
   source          = "./modules/monitoring"
