@@ -261,28 +261,6 @@ module "acm_kor_dns_validation" {
   ]
 }
 
-# ExternalDNS to manage Route53 records from Ingress
-module "external_dns" {
-  source = "./modules/external-dns"
-
-  project_name = var.project_name
-  environment  = var.environment
-  namespace    = "kube-system"
-
-  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
-  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
-
-  domain_filters = [var.domain_name]
-  hosted_zone_id = aws_route53_zone.main.zone_id
-  sources        = ["ingress"]
-  policy         = "upsert-only"
-  registry       = "txt"
-
-  common_tags = var.common_tags
-
-  depends_on = [module.eks, aws_route53_zone.main]
-}
-
 # output "cloudfront_url" {
 #   value = module.cloudfront_prod.domain_name
 # }
@@ -477,6 +455,7 @@ resource "aws_route53_record" "redis_endpoint" {
   records = [module.elasticache.primary_endpoint_address] # ElastiCache 모듈 output
 }
 
+# ExternalDNS to manage Route53 records from Ingress
 module "external_dns" {
   source = "./modules/external_dns"
 
@@ -494,7 +473,6 @@ module "external_dns" {
 
   # Route53 Hosted Zone
   hosted_zone_id            = aws_route53_zone.main.zone_id
-  # hosted_zone_arn         = "arn:aws:route53:::hostedzone/XXXXXXXX"
 
   sources                   = ["ingress"]   # ingress 기반 레코드 관리
   policy                    = "sync" # 삭제 직접 관리 시: "upsert-only"
@@ -502,6 +480,8 @@ module "external_dns" {
   chart_version             = "1.15.0"
 
   tags = var.common_tags
+
+  depends_on = [module.eks, aws_route53_zone.main]
 }
 # Grafana 외부 접속용 도메인(grafana.goteego.store)
 # resource "aws_route53_record" "grafana" {
