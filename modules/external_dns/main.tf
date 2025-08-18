@@ -99,6 +99,11 @@ resource "helm_release" "external_dns" {
   version    = var.chart_version
   namespace  = var.namespace
 
+  # 설치 안정성 강화
+  wait       = true
+  timeout    = 900
+  atomic     = true
+
   # ServiceAccount: IRSA로 만든 SA 재사용
   set {
     name  = "serviceAccount.create"
@@ -133,6 +138,6 @@ resource "helm_release" "external_dns" {
 
   depends_on = [
     aws_iam_role_policy_attachment.attach,
-    kubernetes_service_account.externaldns
+    kubernetes_service_account.externaldns,
   ]
 }
