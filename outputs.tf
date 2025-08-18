@@ -73,3 +73,7 @@ output "alb_controller_status" {
   description = "AWS Load Balancer Controller installation status"
   value       = "AWS Load Balancer Controller installed with IRSA support"
 }
+
+# output "oac_id" {
+#   value = module.cloudfront_oac.oac_id
+# }

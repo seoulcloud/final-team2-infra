@@ -149,7 +149,6 @@ module "documentdb" {
 }
 
 ## SSM Parameter 등록 ====== test
-
 resource "aws_ssm_parameter" "db_password_postgresql" {
   name       = "/${var.project_name}/${var.environment}/db_password_postgresql"
   type       = "SecureString" # 암호화 저장
@@ -168,20 +167,13 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
   depends_on = [module.documentdb]
 }
 
-
-
 # OAC ===========
-
 # OAC 생성
 module "cloudfront_oac" {
   source      = "./modules/cloudfront_oac"
   name        = "${var.project_name}-${var.environment}-oac"
   description = "OAC for CloudFront"
 }
-
-# output "oac_id" {
-#   value = module.cloudfront_oac.oac_id
-# }
 
 #s3======================
 
@@ -191,7 +183,6 @@ module "s3_frontend_prod" {
   prefix      = "prod"
   bucket_name = "${var.project_name}-frontend"
 }
-
 
 resource "aws_s3_bucket_policy" "frontend_policy" {
   bucket = module.s3_frontend_prod.bucket_id
@@ -219,10 +210,7 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
   ]
 }
 
-#========================
-
-#cloud_front
-
+# cloud_front ========================
 module "cloudfront_prod" {
   source                = "./modules/cloudfront"
   prefix                = "prod"
@@ -261,21 +249,7 @@ module "acm_kor_dns_validation" {
   ]
 }
 
-# output "cloudfront_url" {
-#   value = module.cloudfront_prod.domain_name
-# }
-
-# output "cloudfront_id" {
-#   value = module.cloudfront_prod.distribution_id
-# }
-
-# output "cloudfront_domain_name" {
-#   value = module.cloudfront_prod.domain_name
-#   description = "CloudFront 배포 도메인 네임 (예: dxxxxx.cloudfront.net)"
-# }
-#========================
-#static_site
-
+# static_site ========================
 module "web_hosting" {
   source     = "./modules/web_hosting"
   bucket_id  = module.s3_frontend_prod.bucket_id
@@ -291,7 +265,6 @@ provider "aws" {
 }
 
 # Route53 존 생성 (최상위, 독립)
-
 resource "aws_route53_zone" "main" {
   name = var.domain_name # "goteego.store" 대신 변수 사용
 }
@@ -319,8 +292,6 @@ module "acm_us_east_1_dns_validation" {
     module.acm_cert
   ]
 }
-
-
 
 # Backend API IRSA
 module "backend_api_irsa" {
@@ -395,7 +366,6 @@ module "kubernetes_secrets_prod" {
     aws_ssm_parameter.redis_auth_token
   ]
 }
-
 
 # Route53 레코드 (CloudFront 도메인)
 resource "aws_route53_record" "root" {
@@ -508,6 +478,7 @@ module "elasticache" {
   common_tags        = var.common_tags
   depends_on         = [module.eks]
 }
+
 # redis_auth_parameter
 resource "aws_ssm_parameter" "redis_auth_token" {
   name      = "/${var.project_name}/${var.environment}/redis_auth_token"
@@ -625,11 +596,8 @@ resource "aws_security_group_rule" "allow_alb_to_nodes_tls_443" {
     module.eks
   ]
 }
-
 # EKS 클러스터와 Helm 차트는 Terraform으로 자동 배포됩니다
 # GitOps 설정만 수동으로 진행하면 됩니다
-
-
 
 # ALB Module Outputs moved to outputs.tf
 
