@@ -121,6 +121,29 @@ module "rds" {
   tags = var.common_tags
 }
 
+module "db_init" {
+  source    = "./modules/db_init"
+  
+  namespace = "backend-dev"                        # Job을 어디서 돌릴지
+  app_suffix= "backend"
+
+  db_host   = module.rds.db_instance_endpoint # 호스트만 넘기는 output (예: cx482c6...rds.amazonaws.com)
+  db_port   = "5432"
+  db_name   = var.project_name
+  db_user   = var.project_name                     # 마스터 유저(초기화는 마스터로 수행)
+  db_password = var.db_password_postgresql
+
+  exporter_user     = var.rds_db_exporter_user
+  exporter_password = var.db_password_postgresql   # 필요시 다른 비번 변수로 분리
+
+  depends_on = [
+    module.eks,                                     # K8s 연결 가능
+    module.rds,                                     # RDS 준비
+    module.argocd,               # (있다면) 네임스페이스
+    module.kubernetes_secrets_dev                   # (있다면) DB 비밀번호 등 시크릿
+  ]
+}
+
 # DocumentDB Cluster Module
 module "documentdb" {
   source = "./modules/documentdb"
