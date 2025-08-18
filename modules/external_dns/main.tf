@@ -76,20 +76,20 @@ resource "aws_iam_role_policy_attachment" "attach" {
 }
 
 # K8s ServiceAccount (IRSA 연결)
-resource "kubernetes_service_account" "externaldns" {
-  metadata {
-    name      = local.sa_name
-    namespace = var.namespace
-    annotations = {
-      "eks.amazonaws.com/role-arn" = aws_iam_role.externaldns.arn
-    }
-    labels = {
-      "app.kubernetes.io/name"       = "external-dns"
-      "app.kubernetes.io/managed-by" = "terraform"
-    }
-  }
-  automount_service_account_token = true
-}
+# resource "kubernetes_service_account" "externaldns" {
+#   metadata {
+#     name      = local.sa_name
+#     namespace = var.namespace
+#     annotations = {
+#       "eks.amazonaws.com/role-arn" = aws_iam_role.externaldns.arn
+#     }
+#     labels = {
+#       "app.kubernetes.io/name"       = "external-dns"
+#       "app.kubernetes.io/managed-by" = "terraform"
+#     }
+#   }
+#   automount_service_account_token = true
+# }
 
 # Helm 설치
 resource "helm_release" "external_dns" {
@@ -103,10 +103,10 @@ resource "helm_release" "external_dns" {
   # 설치 안정성 강화
   wait       = true
   timeout    = 900
-  atomic     = true
+  atomic     = false
   cleanup_on_fail = true
   force_update    = true
-  
+
   # ServiceAccount: IRSA로 만든 SA 재사용
   set {
     name  = "serviceAccount.create"
@@ -126,7 +126,17 @@ resource "helm_release" "external_dns" {
       aws               = { region = data.aws_region.current.name, zoneType = "public" }
       interval          = "2m"
       triggerLoopOnEvent= true
-      logLevel          = "info"
+      logLevel          = "debug"
+
+      # 차트가 SA 생성 + IRSA 주석을 차트에 전달
+      serviceAccount = {
+        create      = true
+        name        = "external-dns"
+        annotations = {
+          "eks.amazonaws.com/role-arn" = aws_iam_role.externaldns.arn
+        }
+      }
+      rbac = { create = true }  # (기본값이지만 명시)
 
       # annotationFilter는 values의 정식 키로 안전하게 전달
       annotationFilter  = "external-dns.goteego/enabled in (true, 'true')"
@@ -144,13 +154,7 @@ resource "helm_release" "external_dns" {
     kubernetes_service_account.externaldns,
   ]
 
-  # ❗ Helm provider가 apply 중 내부적으로 채우는 computed 필드로 인해
-  #    “metadata was known → unknown” 오류가 날 수 있어 무시
   lifecycle {
-    ignore_changes = [
-      metadata,                 # provider가 채우는 computed 메타데이터
-      manifest,                 # 일부 버전에서 동적 렌더링이 달라질 수 있음
-      status,                   # 상태 필드도 종종 변함
-    ]
+    ignore_changes = [ values ]   # provider가 내부적으로 채우는 값으로 인한 플리커 방지
   }
 }
