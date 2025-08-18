@@ -165,7 +165,6 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
   depends_on = [module.documentdb]
 }
 
-# Output important values moved to outputs.tf
 
 
 # OAC ===========
@@ -247,6 +246,7 @@ module "cloudfront_prod" {
   oac_id                = module.cloudfront_oac.oac_id
   s3_bucket_domain_name = module.s3_frontend_prod.bucket_domain_name
   acm_certificate_arn   = module.acm_cert.certificate_arn
+  aliases               = [var.domain_name, "www.${var.domain_name}"]
 
   depends_on = [
     module.acm_dns_validation,
@@ -255,6 +255,50 @@ module "cloudfront_prod" {
   ]
 }
 
+# ACM for ALB/EKS in ap-northeast-2 (wildcard)
+module "acm_cert_kor" {
+  source    = "./modules/acm_certificate"
+  providers = { aws = aws }  # 기본 provider (ap-northeast-2)
+
+  domain_name               = var.domain_name
+  subject_alternative_names = ["*.${var.domain_name}", "dev.api.${var.domain_name}", "argocd.${var.domain_name}"]
+}
+
+module "acm_kor_dns_validation" {
+  source    = "./modules/acm_dns_validation"
+  providers = { aws = aws }  # 기본 provider (ap-northeast-2)
+
+  certificate_arn                       = module.acm_cert_kor.certificate_arn
+  zone_id                               = aws_route53_zone.main.zone_id
+  certificate_domain_validation_options = module.acm_cert_kor.domain_validation_options
+
+  depends_on = [
+    aws_route53_zone.main,
+    module.acm_cert_kor
+  ]
+}
+
+# ExternalDNS to manage Route53 records from Ingress
+module "external_dns" {
+  source = "./modules/external-dns"
+
+  project_name = var.project_name
+  environment  = var.environment
+  namespace    = "kube-system"
+
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+
+  domain_filters = [var.domain_name]
+  hosted_zone_id = aws_route53_zone.main.zone_id
+  sources        = ["ingress"]
+  policy         = "upsert-only"
+  registry       = "txt"
+
+  common_tags = var.common_tags
+
+  depends_on = [module.eks, aws_route53_zone.main]
+}
 
 # output "cloudfront_url" {
 #   value = module.cloudfront_prod.domain_name
@@ -530,6 +574,66 @@ resource "aws_ssm_parameter" "redis_auth_token" {
   tags      = var.common_tags
 }
 
+# Kubernetes Secrets Module - Dev 환경
+module "kubernetes_secrets_dev" {
+  source = "./modules/kubernetes_secrets"
+
+  namespace_name = "backend-dev"
+  namespace_labels = {
+    environment = "dev"
+    app         = "backend-api"
+  }
+
+  secret_name = "db-secrets"
+  secret_labels = {
+    environment = "dev"
+    app         = "backend-api"
+  }
+
+  db_password_postgresql = var.db_password_postgresql
+  db_password_mongodb    = var.db_password_mongodb
+  redis_auth_token       = var.redis_auth_token
+
+  eks_dependency = module.eks
+  ssm_parameters_dependency = [
+    aws_ssm_parameter.db_password_postgresql,
+    aws_ssm_parameter.db_password_mongodb,
+    aws_ssm_parameter.redis_auth_token
+  ]
+}
+
+# Kubernetes Secrets Module - Prod 환경
+module "kubernetes_secrets_prod" {
+  source = "./modules/kubernetes_secrets"
+
+  namespace_name = "backend-prod"
+  namespace_labels = {
+    environment = "prod"
+    app         = "backend-api"
+  }
+
+  secret_name = "db-secrets"
+  secret_labels = {
+    environment = "prod"
+    app         = "backend-api"
+  }
+
+  db_password_postgresql = var.db_password_postgresql
+  db_password_mongodb    = var.db_password_mongodb
+  redis_auth_token       = var.redis_auth_token
+
+  eks_dependency = module.eks
+  ssm_parameters_dependency = [
+    aws_ssm_parameter.db_password_postgresql,
+    aws_ssm_parameter.db_password_mongodb,
+    aws_ssm_parameter.redis_auth_token
+  ]
+}
+# ========================================
+# Kubernetes Applications (cert-manager & ArgoCD)
+# ========================================
+
+
 # ArgoCD namespace
 resource "kubernetes_namespace" "argocd" {
   metadata {
@@ -543,8 +647,6 @@ resource "kubernetes_namespace" "argocd" {
 
   depends_on = [module.eks]
 }
-
-
 
 # ALB Module
 module "alb" {
@@ -590,10 +692,18 @@ module "argocd" {
 
   alb_security_group_id = module.alb.alb_security_group_id
 
+  # TLS settings
+  certificate_arn  = module.acm_cert_kor.certificate_arn
+  ssl_redirect     = "443"
+  insecure         = false
+  ingress_hostname = "argocd.${var.domain_name}"
+  ingress_hosts    = ["argocd.${var.domain_name}"]
+
   depends_on = [
     module.eks,
     kubernetes_namespace.argocd,
-    module.alb
+    module.alb,
+    module.acm_kor_dns_validation
   ]
 }
 
@@ -635,6 +745,24 @@ resource "aws_security_group_rule" "allow_alb_to_nodes_tls_443" {
 
 
 # ALB Module Outputs moved to outputs.tf
+
+# Backend API IRSA Module
+module "backend_api_irsa" {
+  source = "./modules/irsa"
+
+  name      = "backend-api"
+  namespace = "backend-prod" # 기본값으로 prod 사용
+
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+  project_name              = var.project_name
+  environment               = var.environment
+
+  create_backend_api_role = true
+  common_tags             = var.common_tags
+
+  depends_on = [module.eks]
+}
 
 # Frontend Deploy
 module "github_oidc_roles" {

@@ -32,6 +32,9 @@ resource "aws_db_instance" "this" {
   monitoring_interval = 60 # 60초 간격으로 메트릭 수집
   monitoring_role_arn = aws_iam_role.rds_enhanced_monitoring.arn
 
+  # 최신 RDS CA 체인 고정(지역 최신값으로 조정 가능)
+  ca_cert_identifier = "rds-ca-rsa4096-g1"
+
   # 네트워크 설정
   vpc_security_group_ids = var.vpc_security_group_ids # 연결할 SG 리스트
   db_subnet_group_name   = var.db_subnet_group_name   # DB Subnet Group (Private Subnet)
