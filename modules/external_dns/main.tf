@@ -76,20 +76,20 @@ resource "aws_iam_role_policy_attachment" "attach" {
 }
 
 # K8s ServiceAccount (IRSA 연결)
-# resource "kubernetes_service_account" "externaldns" {
-#   metadata {
-#     name      = local.sa_name
-#     namespace = var.namespace
-#     annotations = {
-#       "eks.amazonaws.com/role-arn" = aws_iam_role.externaldns.arn
-#     }
-#     labels = {
-#       "app.kubernetes.io/name"       = "external-dns"
-#       "app.kubernetes.io/managed-by" = "terraform"
-#     }
-#   }
-#   automount_service_account_token = true
-# }
+resource "kubernetes_service_account" "externaldns" {
+  metadata {
+    name      = local.sa_name
+    namespace = var.namespace
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.externaldns.arn
+    }
+    labels = {
+      "app.kubernetes.io/name"       = "external-dns"
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
+  }
+  automount_service_account_token = true
+}
 
 # Helm 설치
 resource "helm_release" "external_dns" {
@@ -108,14 +108,14 @@ resource "helm_release" "external_dns" {
   force_update    = true
 
   # ServiceAccount: IRSA로 만든 SA 재사용
-  # set {
-  #   name  = "serviceAccount.create"
-  #   value = "false"
-  # }
-  # set {
-  #   name  = "serviceAccount.name"
-  #   value = kubernetes_service_account.externaldns.metadata[0].name
-  # }
+  set {
+    name  = "serviceAccount.create"
+    value = "false"
+  }
+  set {
+    name  = "serviceAccount.name"
+    value = kubernetes_service_account.externaldns.metadata[0].name
+  }
 
   values = [
     yamlencode({
@@ -127,16 +127,6 @@ resource "helm_release" "external_dns" {
       interval          = "2m"
       triggerLoopOnEvent= true
       logLevel          = "debug"
-
-      # 차트가 SA 생성 + IRSA 주석을 차트에 전달
-      serviceAccount = {
-        create      = true
-        name        = "external-dns"
-        annotations = {
-          "eks.amazonaws.com/role-arn" = aws_iam_role.externaldns.arn
-        }
-      }
-      rbac = { create = true }  # (기본값이지만 명시)
 
       # annotationFilter는 values의 정식 키로 안전하게 전달
       annotationFilter  = "external-dns.goteego/enabled in (true, 'true')"
@@ -152,7 +142,7 @@ resource "helm_release" "external_dns" {
   depends_on = [
     aws_iam_role_policy_attachment.attach,
     aws_security_group_rule.allow_eks_nodes_to_sts_vpce_443,
-    # kubernetes_service_account.externaldns,
+    kubernetes_service_account.externaldns,
   ]
 
   lifecycle {
