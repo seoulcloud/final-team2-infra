@@ -311,6 +311,128 @@ module "acm_dns_validation" {
   ]
 }
 
+# ACM for ALB/EKS in ap-northeast-2 (wildcard)
+module "acm_cert_kor" {
+  source    = "./modules/acm_certificate"
+  providers = { aws = aws }  # 기본 provider (ap-northeast-2)
+
+  domain_name               = var.domain_name
+  subject_alternative_names = ["*.${var.domain_name}", "dev.api.${var.domain_name}", "argocd.${var.domain_name}"]
+}
+
+module "acm_kor_dns_validation" {
+  source    = "./modules/acm_dns_validation"
+  providers = { aws = aws }  # 기본 provider (ap-northeast-2)
+
+  certificate_arn                       = module.acm_cert_kor.certificate_arn
+  zone_id                               = aws_route53_zone.main.zone_id
+  certificate_domain_validation_options = module.acm_cert_kor.domain_validation_options
+
+  depends_on = [
+    aws_route53_zone.main,
+    module.acm_cert_kor
+  ]
+}
+
+# ExternalDNS to manage Route53 records from Ingress
+module "external_dns" {
+  source = "./modules/external-dns"
+
+  project_name = var.project_name
+  environment  = var.environment
+  namespace    = "kube-system"
+
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+
+  domain_filters = [var.domain_name]
+  hosted_zone_id = aws_route53_zone.main.zone_id
+  sources        = ["ingress"]
+  policy         = "upsert-only"
+  registry       = "txt"
+
+  common_tags = var.common_tags
+
+  depends_on = [module.eks, aws_route53_zone.main]
+}
+
+# Backend API IRSA
+module "backend_api_irsa" {
+  source = "./modules/irsa"
+
+  project_name = var.project_name
+  environment  = var.environment
+  namespace    = "backend-prod"
+  sa_name      = "backend-api"
+
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+
+  ssm_parameter_arns = [
+    "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/${var.environment}/*"
+  ]
+
+  common_tags = var.common_tags
+
+  depends_on = [module.eks]
+}
+
+# Kubernetes Secrets Module - Dev 환경
+module "kubernetes_secrets_dev" {
+  source = "./modules/kubernetes_secrets"
+
+  namespace_name = "backend-dev"
+  namespace_labels = {
+    environment = "dev"
+    app         = "backend-api"
+  }
+
+  secret_name = "db-secrets"
+  secret_labels = {
+    environment = "dev"
+    app         = "backend-api"
+  }
+
+  db_password_postgresql = var.db_password_postgresql
+  db_password_mongodb    = var.db_password_mongodb
+  redis_auth_token       = var.redis_auth_token
+
+  eks_dependency = module.eks
+  ssm_parameters_dependency = [
+    aws_ssm_parameter.db_password_postgresql,
+    aws_ssm_parameter.db_password_mongodb,
+    aws_ssm_parameter.redis_auth_token
+  ]
+}
+
+# Kubernetes Secrets Module - Prod 환경
+module "kubernetes_secrets_prod" {
+  source = "./modules/kubernetes_secrets"
+
+  namespace_name = "backend-prod"
+  namespace_labels = {
+    environment = "prod"
+    app         = "backend-api"
+  }
+
+  secret_name = "db-secrets"
+  secret_labels = {
+    environment = "prod"
+    app         = "backend-api"
+  }
+
+  db_password_postgresql = var.db_password_postgresql
+  db_password_mongodb    = var.db_password_mongodb
+  redis_auth_token       = var.redis_auth_token
+
+  eks_dependency = module.eks
+  ssm_parameters_dependency = [
+    aws_ssm_parameter.db_password_postgresql,
+    aws_ssm_parameter.db_password_mongodb,
+    aws_ssm_parameter.redis_auth_token
+  ]
+}
+
 
 # Route53 레코드 (CloudFront 도메인)
 resource "aws_route53_record" "root" {
