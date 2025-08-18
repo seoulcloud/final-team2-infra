@@ -101,11 +101,13 @@ resource "helm_release" "external_dns" {
   create_namespace = false
 
   # 설치 안정성 강화
-  wait       = true
-  timeout    = 900
-  atomic     = false
-  cleanup_on_fail = true
-  force_update    = true
+  wait              = true
+  timeout           = 900
+  atomic            = true
+  cleanup_on_fail   = true
+  force_update      = true
+  reset_values      = true       # ✅ 기존 값 초기화하고 이번 values만 반영
+  recreate_pods     = true       # ✅ 파드 재시작 보장
 
   # ServiceAccount: IRSA로 만든 SA 재사용
   set {
@@ -126,13 +128,11 @@ resource "helm_release" "external_dns" {
       aws               = { region = data.aws_region.current.name, zoneType = "public" }
       interval          = "2m"
       triggerLoopOnEvent= true
-      logLevel          = "debug"
+      logLevel          = "info"
 
       # annotationFilter는 values의 정식 키로 안전하게 전달
       annotationFilter  = "external-dns.goteego/enabled in (true, 'true')"
-      extraArgs         = [
-        "--aws-evaluate-target-health=false"
-      ]
+      extraArgs         = ["--aws-evaluate-target-health=false"]
 
       sources           = var.sources          # 예: ["ingress"]
       domainFilters     = var.domain_filters   # 예: ["grafana.goteego.store", "argocd.goteego.store"]
@@ -145,9 +145,9 @@ resource "helm_release" "external_dns" {
     kubernetes_service_account.externaldns,
   ]
 
-  lifecycle {
-    ignore_changes = [ values ]   # provider가 내부적으로 채우는 값으로 인한 플리커 방지
-  }
+  # lifecycle {
+  #   ignore_changes = [ values ]   # provider가 내부적으로 채우는 값으로 인한 플리커 방지
+  # }
 }
 
 # EKS 노드 SG → STS VPCE SG : 443 허용
