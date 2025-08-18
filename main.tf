@@ -736,9 +736,12 @@ module "github_oidc_roles" {
 # autoscale ================
 
 module "autoscale" {
-  source        = "../modules/autoscale"
-  cluster_name  = var.cluster_name
-  aws_region    = var.aws_region
+  source        = "./modules/autoscale"
+  cluster_name  = module.eks.cluster_name
+  project_name              = var.project_name
+  environment               = var.environment
+ # alb_arn              = module.alb.alb_arn       연결예정
+ # alb_target_group_arn = module.alb.backend_tg_arn  연결예정
 
 depends_on = [ module.eks, module.alb ]
 }
