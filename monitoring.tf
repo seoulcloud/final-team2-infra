@@ -65,7 +65,7 @@ module "app_metrics_backend" {
 
 # RDS CPU 모니터링
 module "monitoring_rds_cpu" {
-  source          = "./modules/monitoring"
+  source          = "./modules/monitoring/cloudwatch"
   sns_topic_name  = "${var.project_name}-rds-alerts"
   email_addresses = var.alert_emails
 
