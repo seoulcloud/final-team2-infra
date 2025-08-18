@@ -249,7 +249,7 @@ module "cloudfront_prod" {
   aliases               = [var.domain_name, "www.${var.domain_name}"]
 
   depends_on = [
-    module.acm_dns_validation,
+    module.acm_us_east_1_dns_validation,
     module.cloudfront_oac,
     module.s3_frontend_prod
   ]
