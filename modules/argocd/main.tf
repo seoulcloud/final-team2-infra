@@ -38,6 +38,7 @@ resource "helm_release" "argocd" {
       configs = {
         params = { "server.insecure" = var.insecure }
         rbac   = { "policy.default" = "role:readonly" }
+        cm     = { url = "https://${var.ingress_hostname}" }
         repositories = [
           { url = "https://github.com/CLD-3rd/final-team2-manifest.git" }
         ]
