@@ -98,6 +98,7 @@ resource "helm_release" "external_dns" {
   chart      = "external-dns"
   version    = var.chart_version
   namespace  = var.namespace
+  create_namespace = false
 
   # 설치 안정성 강화
   wait       = true
