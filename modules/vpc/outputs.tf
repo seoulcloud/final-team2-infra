@@ -119,6 +119,11 @@ output "ssm_vpc_endpoint_dns_names" {
   }, {})
 }
 
+# STS Endpoints
+output "vpce_sts_sg_id" {
+  value = aws_security_group.vpce_endpoint.id
+}
+
 # Security Groups
 output "ssm_endpoint_security_group_id" {
   description = "ID of SSM endpoint security group"

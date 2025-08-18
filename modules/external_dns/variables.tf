@@ -66,3 +66,11 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "vpce_sts_sg_id" {
+  description = "STS VPC Endpoint Security Group ID"
+  type        = string
+}
+variable "node_group_security_group_id" {
+  description = "EKS NodeGroup SG ID"
+}

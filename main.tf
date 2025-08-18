@@ -123,7 +123,7 @@ module "rds" {
 
 module "db_init" {
   source    = "./modules/db_init"
-  
+
   namespace = "backend-dev"                        # Job을 어디서 돌릴지
   app_suffix= "backend"
 
@@ -459,6 +459,8 @@ module "external_dns" {
   cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
   cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
 
+  node_group_security_group_id = module.eks.node_group_security_group_id
+  vpce_sts_sg_id = module.vpc.vpce_sts_sg_id
   # 관리할 도메인
   domain_filters            = [
     "grafana.${var.domain_name}"

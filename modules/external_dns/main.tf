@@ -151,10 +151,22 @@ resource "helm_release" "external_dns" {
 
   depends_on = [
     aws_iam_role_policy_attachment.attach,
+    aws_security_group_rule.allow_eks_nodes_to_sts_vpce_443,
     # kubernetes_service_account.externaldns,
   ]
 
   lifecycle {
     ignore_changes = [ values ]   # provider가 내부적으로 채우는 값으로 인한 플리커 방지
   }
+}
+
+# EKS 노드 SG → STS VPCE SG : 443 허용
+resource "aws_security_group_rule" "allow_eks_nodes_to_sts_vpce_443" {
+  type                     = "ingress"
+  description              = "Allow EKS nodes to call STS via VPC Endpoint"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = var.vpce_sts_sg_id
+  source_security_group_id = var.node_group_security_group_id
 }
