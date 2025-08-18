@@ -6,8 +6,8 @@ output "db_instance_id" {
 
 # RDS 엔드포인트 (애플리케이션이 연결할 주소)
 output "db_instance_endpoint" {
-  description = "The RDS instance endpoint"
-  value       = aws_db_instance.this.endpoint
+  description = "The RDS instance endpoint (포트 번호 제외)"
+  value       = aws_db_instance.this.address
   sensitive   = true
 }
 
