@@ -254,14 +254,16 @@ module "cloudfront_prod" {
 
 # ACM for ALB/EKS in ap-northeast-2 (wildcard)
 module "acm_cert_kor" {
-  source = "./modules/acm_certificate"
-  # default provider (ap-northeast-2)
+  source    = "./modules/acm_certificate"
+  providers = { aws = aws }  # 기본 provider (ap-northeast-2)
+
   domain_name               = var.domain_name
   subject_alternative_names = ["*.${var.domain_name}", "dev.api.${var.domain_name}", "argocd.${var.domain_name}"]
 }
 
 module "acm_kor_dns_validation" {
-  source = "./modules/acm_dns_validation"
+  source    = "./modules/acm_dns_validation"
+  providers = { aws = aws }  # 기본 provider (ap-northeast-2)
 
   certificate_arn                       = module.acm_cert_kor.certificate_arn
   zone_id                               = aws_route53_zone.main.zone_id
