@@ -78,9 +78,7 @@ resource "kubernetes_manifest" "flyway_job" {
       backoffLimit             = var.backoff_limit
       ttlSecondsAfterFinished  = var.ttl_seconds_after_finished
       template = {
-        metadata = {
-          labels = { app = local.job_name }
-        }
+        metadata = {}
         spec = {
           restartPolicy = "Never"
           containers = [
@@ -138,5 +136,13 @@ resource "kubernetes_manifest" "flyway_job" {
         }
       }
     }
+  }
+  
+  # 🔧 서버가 주입하는 동적 라벨로 인한 드리프트 무시
+  lifecycle {
+    ignore_changes = [
+      "object.spec.template.metadata.labels",
+      "object.metadata.labels", # 혹시 상위에도 주입되면 함께 무시
+    ]
   }
 }
