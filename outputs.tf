@@ -48,11 +48,11 @@ output "backend_api_irsa_role_arn" {
 output "kubernetes_secrets_status" {
   description = "Kubernetes Secrets creation status"
   value = {
-    dev_namespace  = module.kubernetes_secrets_dev.namespace_name
-    prod_namespace = module.kubernetes_secrets_prod.namespace_name
-    dev_secret     = module.kubernetes_secrets_dev.secret_name
-    prod_secret    = module.kubernetes_secrets_prod.secret_name
-    dev_secret_keys = module.kubernetes_secrets_dev.secret_data_keys
+    dev_namespace    = module.kubernetes_secrets_dev.namespace_name
+    prod_namespace   = module.kubernetes_secrets_prod.namespace_name
+    dev_secret       = module.kubernetes_secrets_dev.secret_name
+    prod_secret      = module.kubernetes_secrets_prod.secret_name
+    dev_secret_keys  = module.kubernetes_secrets_dev.secret_data_keys
     prod_secret_keys = module.kubernetes_secrets_prod.secret_data_keys
   }
 }

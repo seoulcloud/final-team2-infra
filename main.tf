@@ -161,26 +161,7 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
   depends_on = [module.documentdb]
 }
 
-# Output important values
-output "vpc_id" {
-  description = "VPC ID"
-  value       = module.vpc.vpc_id
-}
-
-output "eks_cluster_endpoint" {
-  description = "EKS Cluster Endpoint"
-  value       = module.eks.cluster_endpoint
-}
-
-output "eks_cluster_name" {
-  description = "EKS Cluster Name"
-  value       = module.eks.cluster_name
-}
-
-output "ssm_session_manager_url" {
-  description = "SSM Session Manager Connection Guide"
-  value       = "Use 'aws ssm start-session --target <instance-id> --profile default' to connect"
-}
+# Output important values - moved to outputs.tf
 
 
 # OAC ===========
@@ -273,7 +254,7 @@ module "cloudfront_prod" {
 
 # ACM for ALB/EKS in ap-northeast-2 (wildcard)
 module "acm_cert_kor" {
-  source    = "./modules/acm_certificate"
+  source = "./modules/acm_certificate"
   # default provider (ap-northeast-2)
   domain_name               = var.domain_name
   subject_alternative_names = ["*.${var.domain_name}", "dev.api.${var.domain_name}", "argocd.${var.domain_name}"]
@@ -467,11 +448,11 @@ module "elasticache" {
 }
 # redis_auth_parameter
 resource "aws_ssm_parameter" "redis_auth_token" {
-  name       = "/${var.project_name}/${var.environment}/redis_auth_token"
-  type       = "SecureString" # 보안 문자열로 저장
-  value      = var.redis_auth_token
-  overwrite  = true
-  tags       = var.common_tags
+  name      = "/${var.project_name}/${var.environment}/redis_auth_token"
+  type      = "SecureString" # 보안 문자열로 저장
+  value     = var.redis_auth_token
+  overwrite = true
+  tags      = var.common_tags
 }
 
 # Kubernetes Secrets Module - Dev 환경
@@ -707,7 +688,7 @@ module "backend_api_irsa" {
   source = "./modules/irsa"
 
   name      = "backend-api"
-  namespace = "backend-prod"  # 기본값으로 prod 사용
+  namespace = "backend-prod" # 기본값으로 prod 사용
 
   cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
   cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
