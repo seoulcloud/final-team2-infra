@@ -83,55 +83,55 @@ resource "aws_iam_role_policy_attachment" "rds_enhanced_monitoring" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }
 
-resource "postgresql_role" "exporter" {
-  depends_on = [time_sleep.wait_rds_ready]
+# resource "postgresql_role" "exporter" {
+#   depends_on = [time_sleep.wait_rds_ready]
 
-  name     = var.db_exporter_username
-  login    = true
-  password = var.db_password
+#   name     = var.db_exporter_username
+#   login    = true
+#   password = var.db_password
 
-  # 필요시 패스워드 만료/정책 옵션들 추가 가능
-  # valid_until = "infinity"
-}
+#   # 필요시 패스워드 만료/정책 옵션들 추가 가능
+#   # valid_until = "infinity"
+# }
 
-resource "postgresql_grant_role" "exporter_pg_monitor" {
-  depends_on = [postgresql_role.exporter]
+# resource "postgresql_grant_role" "exporter_pg_monitor" {
+#   depends_on = [postgresql_role.exporter]
 
-  # 부여받는 쪽(= 우리 사용자/롤)
-  role             = postgresql_role.exporter.name
+#   # 부여받는 쪽(= 우리 사용자/롤)
+#   role             = postgresql_role.exporter.name
 
-  # 부여할 롤
-  grant_role       = "pg_monitor"
+#   # 부여할 롤
+#   grant_role       = "pg_monitor"
 
-  # ADMIN OPTION 불필요하면 false
-  with_admin_option = false
-}
+#   # ADMIN OPTION 불필요하면 false
+#   with_admin_option = false
+# }
 
-resource "time_sleep" "wait_rds_ready" {
-  depends_on      = [aws_db_instance.this]
-  create_duration = "45s"
-}
+# resource "time_sleep" "wait_rds_ready" {
+#   depends_on      = [aws_db_instance.this]
+#   create_duration = "45s"
+# }
 
 # pgvector 설치 (CREATE EXTENSION vector)
-resource "postgresql_extension" "pgvector" {
-  name     = "vector"            # pgvector의 실제 extension 이름은 'vector'
-  schema   = "public"
-  database = var.db_name
+# resource "postgresql_extension" "pgvector" {
+#   name     = "vector"            # pgvector의 실제 extension 이름은 'vector'
+#   schema   = "public"
+#   database = var.db_name
 
-  # RDS가 준비된 뒤에 실행
-  depends_on = [
-    time_sleep.wait_rds_ready,
-    aws_db_instance.this
-  ]
-}
+#   # RDS가 준비된 뒤에 실행
+#   depends_on = [
+#     time_sleep.wait_rds_ready,
+#     aws_db_instance.this
+#   ]
+# }
 
-resource "postgresql_grant" "exporter_connect" {
-  depends_on  = [postgresql_role.exporter]
-  database    = var.db_name
-  role        = postgresql_role.exporter.name
-  object_type = "database"
-  privileges  = ["CONNECT"]
-}
+# resource "postgresql_grant" "exporter_connect" {
+#   depends_on  = [postgresql_role.exporter]
+#   database    = var.db_name
+#   role        = postgresql_role.exporter.name
+#   object_type = "database"
+#   privileges  = ["CONNECT"]
+# }
 
 resource "aws_security_group_rule" "allow_prometheus_to_rds" {
   type                     = "ingress"
