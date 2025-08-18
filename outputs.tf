@@ -73,3 +73,9 @@ output "alb_controller_status" {
   description = "AWS Load Balancer Controller installation status"
   value       = "AWS Load Balancer Controller installed with IRSA support"
 }
+
+# Route53 Zone ID
+output "route53_zone_id" {
+  description = "Route53 Hosted Zone ID"
+  value       = aws_route53_zone.main.zone_id
+}
