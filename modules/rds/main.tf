@@ -109,7 +109,7 @@ resource "postgresql_grant_role" "exporter_pg_monitor" {
 
 resource "time_sleep" "wait_rds_ready" {
   depends_on      = [aws_db_instance.this]
-  create_duration = "90s"
+  create_duration = "45s"
 }
 
 # pgvector 설치 (CREATE EXTENSION vector)

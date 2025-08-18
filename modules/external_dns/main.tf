@@ -109,75 +109,27 @@ resource "helm_release" "external_dns" {
     value = kubernetes_service_account.externaldns.metadata[0].name
   }
 
-  # Provider / 동작
-  set {
-    name  = "provider"
-    value = "aws"
-  }
-  set {
-    name  = "policy"
-    value = var.policy # 예: "upsert-only"
-  }
-  set {
-    name  = "registry"
-    value = var.registry # 예: "txt"
-  }
-  set {
-    name  = "txtOwnerId"
-    value = local.txt_owner_id
-  }
+  values = [
+    yamlencode({
+      provider          = "aws"
+      policy            = var.policy
+      registry          = var.registry
+      txtOwnerId        = local.txt_owner_id
+      aws               = { region = data.aws_region.current.name, zoneType = "public" }
+      interval          = "2m"
+      triggerLoopOnEvent= true
+      logLevel          = "info"
 
-  # AWS 옵션
-  set {
-    name  = "aws.region"
-    value = data.aws_region.current.name
-  }
-  set {
-    name  = "aws.zoneType"
-    value = "public"
-  }
+      # annotationFilter는 values의 정식 키로 안전하게 전달
+      annotationFilter  = "external-dns.goteego/enabled in (true, 'true')"
+      extraArgs         = [
+        "--aws-evaluate-target-health=false"
+      ]
 
-  # 동작 튜닝 (모두 문자열로!)
-  set {
-    name  = "interval"
-    value = "2m"
-  }
-  set {
-    name  = "triggerLoopOnEvent"
-    value = tostring(true) # bool 넣지 말고 문자열/ tostring 사용
-  }
-  set {
-    name  = "logLevel"
-    value = "info"
-  }
-
-  set {
-    name  = "extraArgs[0]"
-    value = "--aws-evaluate-target-health=false"
-  }
-
-  set {
-    name  = "extraArgs[1]"
-    value = "--annotation-filter=external-dns.goteego/enabled in (true, 'true')"
-  }
-
-  # sources[] 배열
-  dynamic "set" {
-    for_each = var.sources # 예: ["ingress"]
-    content {
-      name  = "sources[${set.key}]"
-      value = set.value
-    }
-  }
-
-  # domainFilters[] 배열
-  dynamic "set" {
-    for_each = var.domain_filters # 예: ["goteego.store"]
-    content {
-      name  = "domainFilters[${set.key}]"
-      value = set.value
-    }
-  }
+      sources           = var.sources          # 예: ["ingress"]
+      domainFilters     = var.domain_filters   # 예: ["grafana.goteego.store", "argocd.goteego.store"]
+    })
+  ]
 
   depends_on = [
     aws_iam_role_policy_attachment.attach,
