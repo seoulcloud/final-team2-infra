@@ -7,14 +7,8 @@ terraform {
   }
 }
 
-#ACM 인증서 요청
-provider "aws" {
-  alias  = "virginia"
-  region = "us-east-1"
-}
-
+# ACM 인증서 요청 (provider는 외부에서 전달받음)
 resource "aws_acm_certificate" "cert" {
-  provider          = aws
   domain_name       = var.domain_name
   validation_method = "DNS"
 
