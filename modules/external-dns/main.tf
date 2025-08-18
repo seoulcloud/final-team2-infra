@@ -2,7 +2,7 @@ data "aws_region" "current" {}
 
 # Hosted Zone ARN 계산
 locals {
-  hosted_zone_arn = var.hosted_zone_arn != null ? var.hosted_zone_arn : (var.hosted_zone_id != null ? "arn:aws:route53:::hostedzone/${var.hosted_zone_id}" : null)
+  hosted_zone_arn = coalesce(var.hosted_zone_arn, var.hosted_zone_id != null ? "arn:aws:route53:::hostedzone/${var.hosted_zone_id}" : null)
   sa_name         = "external-dns"
   txt_owner_id    = coalesce(var.txt_owner_id, "${var.project_name}-${var.environment}")
 }

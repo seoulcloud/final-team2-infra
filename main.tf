@@ -1,10 +1,14 @@
 # Team Account - Main Terraform Configuration
 
 ##test
-# Data source for availability zones
+# Data sources
 data "aws_availability_zones" "available" {
   state = "available"
 }
+
+data "aws_region" "current" {}
+
+data "aws_caller_identity" "current" {}
 
 # VPC Module
 module "vpc" {
@@ -161,7 +165,6 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
   depends_on = [module.documentdb]
 }
 
-# Output important values - moved to outputs.tf
 
 
 # OAC ===========
@@ -246,7 +249,7 @@ module "cloudfront_prod" {
   aliases               = [var.domain_name, "www.${var.domain_name}"]
 
   depends_on = [
-    module.acm_dns_validation,
+    module.acm_us_east_1_dns_validation,
     module.cloudfront_oac,
     module.s3_frontend_prod
   ]
@@ -255,7 +258,7 @@ module "cloudfront_prod" {
 # ACM for ALB/EKS in ap-northeast-2 (wildcard)
 module "acm_cert_kor" {
   source    = "./modules/acm_certificate"
-  providers = { aws = aws }  # 기본 provider (ap-northeast-2)
+  providers = { aws = aws } # 기본 provider (ap-northeast-2)
 
   domain_name               = var.domain_name
   subject_alternative_names = ["*.${var.domain_name}", "dev.api.${var.domain_name}", "argocd.${var.domain_name}"]
@@ -263,7 +266,7 @@ module "acm_cert_kor" {
 
 module "acm_kor_dns_validation" {
   source    = "./modules/acm_dns_validation"
-  providers = { aws = aws }  # 기본 provider (ap-northeast-2)
+  providers = { aws = aws } # 기본 provider (ap-northeast-2)
 
   certificate_arn                       = module.acm_cert_kor.certificate_arn
   zone_id                               = aws_route53_zone.main.zone_id
@@ -332,10 +335,6 @@ resource "aws_route53_zone" "main" {
   name = var.domain_name # "goteego.store" 대신 변수 사용
 }
 
-# output "zone_id" {
-#   value = aws_route53_zone.main.zone_id
-# }
-
 # ACM 인증서 생성 (us-east-1 리전 지정 provider)
 module "acm_cert" {
   source    = "./modules/acm_certificate"
@@ -345,12 +344,8 @@ module "acm_cert" {
   subject_alternative_names = var.subject_alternative_names
 }
 
-# output "certificate_arn" {
-#   value = module.acm_cert.certificate_arn
-# }
-
-# ACM DNS 검증용 레코드 생성 
-module "acm_dns_validation" {
+# ACM DNS 검증용 레코드 생성 (us-east-1 for CloudFront)
+module "acm_us_east_1_dns_validation" {
   source    = "./modules/acm_dns_validation"
   providers = { aws = aws.virginia }
 
@@ -361,6 +356,82 @@ module "acm_dns_validation" {
   depends_on = [
     aws_route53_zone.main,
     module.acm_cert
+  ]
+}
+
+
+
+# Backend API IRSA
+module "backend_api_irsa" {
+  source = "./modules/irsa"
+
+  name         = "backend-api"
+  namespace    = "backend-prod"
+  project_name = var.project_name
+  environment  = var.environment
+
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+
+  create_backend_api_role = true
+  common_tags             = var.common_tags
+
+  depends_on = [module.eks]
+}
+
+# Kubernetes Secrets Module - Dev 환경
+module "kubernetes_secrets_dev" {
+  source = "./modules/kubernetes_secrets"
+
+  namespace_name = "backend-dev"
+  namespace_labels = {
+    environment = "dev"
+    app         = "backend-api"
+  }
+
+  secret_name = "db-secrets"
+  secret_labels = {
+    environment = "dev"
+    app         = "backend-api"
+  }
+
+  db_password_postgresql = var.db_password_postgresql
+  db_password_mongodb    = var.db_password_mongodb
+  redis_auth_token       = var.redis_auth_token
+
+  eks_dependency = module.eks
+  ssm_parameters_dependency = [
+    aws_ssm_parameter.db_password_postgresql,
+    aws_ssm_parameter.db_password_mongodb,
+    aws_ssm_parameter.redis_auth_token
+  ]
+}
+
+# Kubernetes Secrets Module - Prod 환경
+module "kubernetes_secrets_prod" {
+  source = "./modules/kubernetes_secrets"
+
+  namespace_name = "backend-prod"
+  namespace_labels = {
+    environment = "prod"
+    app         = "backend-api"
+  }
+
+  secret_name = "db-secrets"
+  secret_labels = {
+    environment = "prod"
+    app         = "backend-api"
+  }
+
+  db_password_postgresql = var.db_password_postgresql
+  db_password_mongodb    = var.db_password_mongodb
+  redis_auth_token       = var.redis_auth_token
+
+  eks_dependency = module.eks
+  ssm_parameters_dependency = [
+    aws_ssm_parameter.db_password_postgresql,
+    aws_ssm_parameter.db_password_mongodb,
+    aws_ssm_parameter.redis_auth_token
   ]
 }
 
@@ -457,65 +528,9 @@ resource "aws_ssm_parameter" "redis_auth_token" {
   tags      = var.common_tags
 }
 
-# Kubernetes Secrets Module - Dev 환경
-module "kubernetes_secrets_dev" {
-  source = "./modules/kubernetes_secrets"
-
-  namespace_name = "backend-dev"
-  namespace_labels = {
-    environment = "dev"
-    app         = "backend-api"
-  }
-
-  secret_name = "db-secrets"
-  secret_labels = {
-    environment = "dev"
-    app         = "backend-api"
-  }
-
-  db_password_postgresql = var.db_password_postgresql
-  db_password_mongodb    = var.db_password_mongodb
-  redis_auth_token       = var.redis_auth_token
-
-  eks_dependency = module.eks
-  ssm_parameters_dependency = [
-    aws_ssm_parameter.db_password_postgresql,
-    aws_ssm_parameter.db_password_mongodb,
-    aws_ssm_parameter.redis_auth_token
-  ]
-}
-
-# Kubernetes Secrets Module - Prod 환경
-module "kubernetes_secrets_prod" {
-  source = "./modules/kubernetes_secrets"
-
-  namespace_name = "backend-prod"
-  namespace_labels = {
-    environment = "prod"
-    app         = "backend-api"
-  }
-
-  secret_name = "db-secrets"
-  secret_labels = {
-    environment = "prod"
-    app         = "backend-api"
-  }
-
-  db_password_postgresql = var.db_password_postgresql
-  db_password_mongodb    = var.db_password_mongodb
-  redis_auth_token       = var.redis_auth_token
-
-  eks_dependency = module.eks
-  ssm_parameters_dependency = [
-    aws_ssm_parameter.db_password_postgresql,
-    aws_ssm_parameter.db_password_mongodb,
-    aws_ssm_parameter.redis_auth_token
-  ]
-}
 # ========================================
 # Kubernetes Applications (cert-manager & ArgoCD)
 # ========================================
-
 
 # ArgoCD namespace
 resource "kubernetes_namespace" "argocd" {
@@ -530,7 +545,6 @@ resource "kubernetes_namespace" "argocd" {
 
   depends_on = [module.eks]
 }
-
 
 # ALB Module
 module "alb" {
@@ -567,8 +581,6 @@ module "alb" {
   ]
 }
 
-
-
 # ArgoCD Helm chart
 module "argocd" {
   source        = "./modules/argocd"
@@ -579,7 +591,7 @@ module "argocd" {
   alb_security_group_id = module.alb.alb_security_group_id
 
   # TLS settings
-  certificate_arn  = module.acm_cert_kor.certificate_arn
+  certificate_arn  = module.acm_cert.certificate_arn
   ssl_redirect     = "443"
   insecure         = false
   ingress_hostname = "argocd.${var.domain_name}"
@@ -589,65 +601,10 @@ module "argocd" {
     module.eks,
     kubernetes_namespace.argocd,
     module.alb,
-    module.acm_kor_dns_validation
+    module.acm_us_east_1_dns_validation
   ]
 }
 
-# ArgoCD Ingress hostname (Kubernetes data source)
-# data "kubernetes_ingress_v1" "argocd" {
-#   metadata {
-#     name      = "argocd-server"
-#     namespace = kubernetes_namespace.argocd.metadata[0].name
-#   }
-#
-#   depends_on = [
-#     module.argocd
-#   ]
-# }
-
-# Safely extract ALB hostname (may be empty on first apply)
-# locals {
-#   argocd_ingress_hostname = try(
-#     data.kubernetes_ingress_v1.argocd.status[0].load_balancer[0].ingress[0].hostname,
-#     null
-#   )
-# }
-
-# Route53 CNAME for ArgoCD: argocd.<domain> → ALB hostname
-# resource "aws_route53_record" "argocd" {
-#   count   = local.argocd_ingress_hostname != null && length(local.argocd_ingress_hostname) > 0 ? 1 : 0
-#   zone_id = aws_route53_zone.main.zone_id
-#   name    = "argocd.${var.domain_name}"
-#   type    = "CNAME"
-#   ttl     = 300
-#
-#   records = [local.argocd_ingress_hostname]
-#
-#   depends_on = [
-#     aws_route53_zone.main,
-#     module.argocd
-#   ]
-# }
-
-# Route53 CNAME for prod API: api.<domain> → provided hostname (conditional)
-# resource "aws_route53_record" "api_prod" {
-#   count   = length(var.prod_backend_hostname) > 0 ? 1 : 0
-#   zone_id = aws_route53_zone.main.zone_id
-#   name    = "api.${var.domain_name}"
-#   type    = "CNAME"
-#   ttl     = 300
-#   records = [var.prod_backend_hostname]
-# }
-
-# Route53 CNAME for dev API: dev.api.<domain> → provided hostname (conditional)
-# resource "aws_route53_record" "api_dev" {
-#   count   = length(var.dev_backend_hostname) > 0 ? 1 : 0
-#   zone_id = aws_route53_zone.main.zone_id
-#   name    = "dev.api.${var.domain_name}"
-#   type    = "CNAME"
-#   ttl     = 300
-#   records = [var.dev_backend_hostname]
-# }
 # ALB → EKS NodeGroup SG: ArgoCD 서버 targetPort(8080) 허용
 resource "aws_security_group_rule" "allow_alb_to_nodes_argo_8080" {
   type                     = "ingress"
@@ -664,44 +621,28 @@ resource "aws_security_group_rule" "allow_alb_to_nodes_argo_8080" {
   ]
 }
 
+# ALB → EKS NodeGroup SG: TLS(443) 허용
+resource "aws_security_group_rule" "allow_alb_to_nodes_tls_443" {
+  type                     = "ingress"
+  description              = "Allow ALB to reach EKS nodes on TLS port 443"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = module.eks.node_group_security_group_id
+  source_security_group_id = module.alb.alb_security_group_id
+
+  depends_on = [
+    module.alb,
+    module.eks
+  ]
+}
+
 # EKS 클러스터와 Helm 차트는 Terraform으로 자동 배포됩니다
 # GitOps 설정만 수동으로 진행하면 됩니다
 
 
 
-# ALB Module Outputs
-output "alb_controller_role_arn" {
-  description = "AWS Load Balancer Controller IAM Role ARN"
-  value       = module.alb.aws_load_balancer_controller_role_arn
-}
-
-output "alb_security_group_id" {
-  description = "ALB Security Group ID"
-  value       = module.alb.alb_security_group_id
-}
-
-output "alb_controller_status" {
-  description = "AWS Load Balancer Controller installation status"
-  value       = "AWS Load Balancer Controller installed with IRSA support"
-}
-
-# Backend API IRSA Module
-module "backend_api_irsa" {
-  source = "./modules/irsa"
-
-  name      = "backend-api"
-  namespace = "backend-prod" # 기본값으로 prod 사용
-
-  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
-  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
-  project_name              = var.project_name
-  environment               = var.environment
-
-  create_backend_api_role = true
-  common_tags             = var.common_tags
-
-  depends_on = [module.eks]
-}
+# ALB Module Outputs moved to outputs.tf
 
 # Frontend Deploy
 module "github_oidc_roles" {

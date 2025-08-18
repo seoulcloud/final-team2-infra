@@ -57,3 +57,19 @@ output "kubernetes_secrets_status" {
     prod_secret_keys = module.kubernetes_secrets_prod.secret_data_keys
   }
 }
+
+# ALB Module Outputs
+output "alb_controller_role_arn" {
+  description = "AWS Load Balancer Controller IAM Role ARN"
+  value       = module.alb.aws_load_balancer_controller_role_arn
+}
+
+output "alb_security_group_id" {
+  description = "ALB Security Group ID"
+  value       = module.alb.alb_security_group_id
+}
+
+output "alb_controller_status" {
+  description = "AWS Load Balancer Controller installation status"
+  value       = "AWS Load Balancer Controller installed with IRSA support"
+}
