@@ -16,20 +16,20 @@ resource "helm_release" "grafana" {
           "alb.ingress.kubernetes.io/security-groups" = var.alb_security_group_id
         }
       }
-      datasources = {
-        "datasources.yaml" = {
-          apiVersion = 1
-          datasources = [
-            {
-              name      = "Prometheus"
-              type      = "prometheus"
-              url       = "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
-              access    = "proxy"
-              isDefault = true
-            }
-          ]
-        }
-      }
+      # datasources = {
+      #   "datasources.yaml" = {
+      #     apiVersion = 1
+      #     datasources = [
+      #       {
+      #         name      = "Prometheus"
+      #         type      = "prometheus"
+      #         url       = "http://kube-prometheus-stack-prometheus:9090"
+      #         access    = "proxy"
+      #         isDefault = true
+      #       }
+      #     ]
+      #   }
+      # }
     })
   ]
 
