@@ -9,10 +9,8 @@ resource "helm_release" "prometheus" {
   repository = "https://prometheus-community.github.io/helm-charts"
   version    = var.chart_version
 
-  # 네임스페이스가 없다면 생성
-  create_namespace = true
-  # 사용자 정의 values.yaml 값 적용
-  values = [file("${path.module}/values.yaml")]
+ # 사용자 정의 values.yaml 값 적용
+ values = [file("${path.module}/values.yaml")]
 
   wait            = true
   timeout         = 1200
@@ -21,4 +19,79 @@ resource "helm_release" "prometheus" {
 
   # 의존성 모듈이 모두 완료된 후 실행
   depends_on = [var.depends_on_module]
+}
+
+########################
+# Postgres Exporter Secret
+########################
+resource "kubernetes_secret" "postgres_exporter" {
+  metadata {
+    name      = "postgres-exporter-secret"
+    namespace = var.namespace
+    labels = {
+      "app.kubernetes.io/name" = "postgres-exporter"
+    }
+  }
+
+  type = "Opaque"
+
+  data = {
+    # chart가 envFromSecret로 읽어감
+    DATA_SOURCE_USER = base64encode(var.rds_db_exporter_user)
+    DATA_SOURCE_PASS = base64encode(var.rds_db_exporter_password)
+  }
+}
+
+########################
+# Postgres Exporter (Helm)
+########################
+resource "helm_release" "postgres_exporter" {
+  name       = "postgres-exporter"
+  repository = "https://prometheus-community.github.io/helm-charts"
+  chart      = "prometheus-postgres-exporter"
+  version    = var.postgres_exporter_chart_version
+  namespace  = var.namespace
+
+  values = [
+    yamlencode({
+      image = {
+        # 필요 시 고정 버전 사용 가능 (예: "v0.15.0")
+        # tag = "v0.15.0"
+      }
+
+      # exporter가 사용할 환경변수
+      env = [
+        {
+          name  = "DATA_SOURCE_URI"
+          # RDS 엔드포인트:포트/DB명 + TLS 필수
+          value = "${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=require"
+        }
+      ]
+
+      # 민감정보는 Secret에서 주입
+      envFromSecret = kubernetes_secret.postgres_exporter.metadata[0].name
+
+      # ServiceMonitor를 만들어 kube-prometheus-stack이 자동 스크레이프
+      serviceMonitor = {
+        enabled       = true
+        interval      = "15s"
+        scrapeTimeout = "10s"
+        # kube-prometheus-stack이 인식할 라벨 (values.yaml에서 쓰는 release 라벨과 맞추기)
+        labels        = var.service_monitor_labels
+        namespace     = var.namespace
+      }
+
+      # Pod/Service 기본 라벨(선택)
+      podLabels = { "team" = "platform" }
+      service = {
+        labels = { "team" = "platform" }
+        port   = 9187
+      }
+    })
+  ]
+
+  depends_on = [
+    helm_release.prometheus,
+    kubernetes_secret.postgres_exporter,
+  ]
 }

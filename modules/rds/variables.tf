@@ -59,6 +59,11 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "db_exporter_username" {
+  description = "Postgres exporter용 DB 사용자"
+  type        = string
+}
+
 # 파라미터 그룹
 variable "parameter_group_name" {
   description = "Parameter group for PostgreSQL"
@@ -88,6 +93,14 @@ variable "vpc_security_group_ids" {
 variable "db_subnet_group_name" {
   description = "The name of the DB subnet group to use"
   type        = string
+}
+
+variable "postgresql_security_group_id" {
+  description = "Postgresql SG ID"
+}
+
+variable "node_group_security_group_id" {
+  description = "EKS NodeGroup SG ID"
 }
 
 # 공통 태그

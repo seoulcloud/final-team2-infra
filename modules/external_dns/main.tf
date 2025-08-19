@@ -2,7 +2,12 @@ data "aws_region" "current" {}
 
 # Hosted Zone ARN 계산
 locals {
-  hosted_zone_arn = coalesce(var.hosted_zone_arn, var.hosted_zone_id != null ? "arn:aws:route53:::hostedzone/${var.hosted_zone_id}" : null)
+  # hosted_zone_arn = coalesce(var.hosted_zone_arn, var.hosted_zone_id != null ? "arn:aws:route53:::hostedzone/${var.hosted_zone_id}" : null)
+  hosted_zone_arn = (
+    var.hosted_zone_arn != null
+    ? var.hosted_zone_arn
+    : (var.hosted_zone_id != null ? "arn:aws:route53:::hostedzone/${var.hosted_zone_id}" : null)
+  )
   sa_name         = "external-dns"
   txt_owner_id    = coalesce(var.txt_owner_id, "${var.project_name}-${var.environment}")
 }
@@ -33,7 +38,7 @@ data "aws_iam_policy_document" "trust" {
 resource "aws_iam_role" "externaldns" {
   name               = "${var.project_name}-${var.environment}-externaldns-irsa"
   assume_role_policy = data.aws_iam_policy_document.trust.json
-  tags               = var.common_tags
+  tags               = var.tags
 }
 
 # Route53 권한 (Zone 제한 권장)
@@ -62,7 +67,7 @@ resource "aws_iam_policy" "externaldns_route53" {
     ]
   })
 
-  tags = var.common_tags
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "attach" {
@@ -93,6 +98,16 @@ resource "helm_release" "external_dns" {
   chart      = "external-dns"
   version    = var.chart_version
   namespace  = var.namespace
+  create_namespace = false
+
+  # 설치 안정성 강화
+  wait              = false
+  timeout           = 900
+  atomic            = false
+  cleanup_on_fail   = true
+  force_update      = true
+  reset_values      = true       # ✅ 기존 값 초기화하고 이번 values만 반영
+  recreate_pods     = false       # ✅ 파드 재시작 보장
 
   # ServiceAccount: IRSA로 만든 SA 재사용
   set {
@@ -104,68 +119,44 @@ resource "helm_release" "external_dns" {
     value = kubernetes_service_account.externaldns.metadata[0].name
   }
 
-  # Provider / 동작
-  set {
-    name  = "provider"
-    value = "aws"
-  }
-  set {
-    name  = "policy"
-    value = var.policy # 예: "upsert-only"
-  }
-  set {
-    name  = "registry"
-    value = var.registry # 예: "txt"
-  }
-  set {
-    name  = "txtOwnerId"
-    value = "${var.project_name}-${var.environment}"
-  }
+  values = [
+    yamlencode({
+      provider          = "aws"
+      policy            = var.policy
+      registry          = var.registry
+      txtOwnerId        = local.txt_owner_id
+      aws               = { region = data.aws_region.current.name, zoneType = "public" }
+      interval          = "2m"
+      triggerLoopOnEvent= true
+      logLevel          = "info"
 
-  # AWS 옵션
-  set {
-    name  = "aws.region"
-    value = data.aws_region.current.name
-  }
-  set {
-    name  = "aws.zoneType"
-    value = "public"
-  }
+      # annotationFilter는 values의 정식 키로 안전하게 전달
+      annotationFilter  = "external-dns.goteego/enabled in (true, 'true')"
+      extraArgs         = ["--aws-evaluate-target-health=false"]
 
-  # 동작 튜닝 (모두 문자열로!)
-  set {
-    name  = "interval"
-    value = "2m"
-  }
-  set {
-    name  = "triggerLoopOnEvent"
-    value = tostring(true) # bool 넣지 말고 문자열/ tostring 사용
-  }
-  set {
-    name  = "logLevel"
-    value = "info"
-  }
-
-  # sources[] 배열
-  dynamic "set" {
-    for_each = var.sources # 예: ["ingress"]
-    content {
-      name  = "sources[${set.key}]"
-      value = set.value
-    }
-  }
-
-  # domainFilters[] 배열
-  dynamic "set" {
-    for_each = var.domain_filters # 예: ["goteego.store"]
-    content {
-      name  = "domainFilters[${set.key}]"
-      value = set.value
-    }
-  }
+      sources           = var.sources          # 예: ["ingress"]
+      domainFilters     = var.domain_filters   # 예: ["grafana.goteego.store", "argocd.goteego.store"]
+    })
+  ]
 
   depends_on = [
     aws_iam_role_policy_attachment.attach,
-    kubernetes_service_account.externaldns
+    aws_security_group_rule.allow_eks_nodes_to_sts_vpce_443,
+    kubernetes_service_account.externaldns,
   ]
+
+  # lifecycle {
+  #   ignore_changes = [ values ]   # provider가 내부적으로 채우는 값으로 인한 플리커 방지
+  # }
+}
+
+# EKS 노드 SG → STS VPCE SG : 443 허용
+resource "aws_security_group_rule" "allow_eks_nodes_to_sts_vpce_443" {
+  type                     = "ingress"
+  description              = "Allow EKS nodes to call STS via VPC Endpoint"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = var.vpce_sts_sg_id
+  source_security_group_id = var.node_group_security_group_id
 }

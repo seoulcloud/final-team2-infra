@@ -1,6 +1,71 @@
+# Monitoring namespace
+resource "kubernetes_namespace" "monitoring" {
+  metadata {
+    name = var.monitoring_namespace
+
+    labels = {
+      "name"                         = var.monitoring_namespace
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
+  }
+
+  depends_on = [module.eks]
+}
+
+module "prometheus" {
+  source            = "./modules/monitoring/prometheus"
+  namespace         = var.monitoring_namespace
+  chart_version     = "56.6.2"
+
+  # Postgres Exporter 추가 설정
+  postgres_exporter_chart_version = "6.1.0"
+  rds_endpoint                    = module.rds.db_instance_endpoint
+  rds_db_name                     = var.project_name
+  rds_db_exporter_user            = var.rds_db_exporter_user
+  rds_db_exporter_password        = var.db_password_postgresql
+
+  # ServiceMonitor 라벨 (kube-prometheus-stack values.yaml에서 release 값 확인)
+  service_monitor_labels = {
+    release = "kube-prometheus-stack"
+  }
+
+  depends_on_module = [ 
+    module.eks,
+    kubernetes_namespace.monitoring,
+    module.alb
+  ]
+}
+
+module "grafana" {
+  source                 = "./modules/monitoring/grafana"
+  namespace              = var.monitoring_namespace
+  chart_version          = "7.3.9"
+  alb_security_group_id    = module.alb.alb_security_group_id
+  node_group_security_group_id   = module.eks.node_group_security_group_id
+  depends_on_module      = [
+    module.prometheus
+  ]
+  grafana_admin_password = var.grafana_admin_password
+}
+
+module "app_metrics_backend" {
+  source = "./modules/monitoring/app_metrics"
+
+  namespace           = "backend-dev"
+  app_name            = "backend-api"
+  selector_label_key  = "app"                    # 파드 라벨 키
+  service_port        = 8080
+  service_port_name   = "http"
+  prom_path           = "/actuator/prometheus"
+  prom_release_label  = "kube-prometheus-stack"   # 너의 kube-prometheus-stack 라벨값과 일치시켜!
+
+  # kube-prometheus-stack 헬름릴리즈를 넘겨 CRD 선적용 보장
+  depends_on = [module.prometheus]
+}
+
 # RDS CPU 모니터링
 module "monitoring_rds_cpu" {
-  source          = "./modules/monitoring"
+  source          = "./modules/monitoring/cloudwatch"
   sns_topic_name  = "${var.project_name}-rds-alerts"
   email_addresses = var.alert_emails
 
@@ -20,23 +85,6 @@ module "monitoring_rds_cpu" {
 
   tags = var.common_tags
 }
-
-module "prometheus" {
-  source            = "./modules/monitoring/prometheus"
-  namespace         = "monitoring"
-  chart_version     = "56.6.2"
-  depends_on_module = module.eks
-}
-
-# module "grafana" {
-#   source                 = "./modules/monitoring/grafana"
-#   namespace              = "monitoring"
-#   chart_version          = "7.3.9"
-#   alb_sg_id    = module.alb.alb_sg_id
-#   node_sg_id   = module.eks.node_group_security_group_id
-#   depends_on_module      = module.prometheus
-#   grafana_admin_password = var.grafana_admin_password
-# }
 
 # # EKS CPU 모니터링
 # module "monitoring_eks_cpu" {

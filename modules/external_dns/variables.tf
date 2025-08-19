@@ -23,23 +23,23 @@ variable "cluster_oidc_issuer_url" {
 # 관리할 도메인/Hosted Zone 제한
 variable "domain_filters" {
   type    = list(string)
-  default = []
+  default = [] # 예: ["goteego.store"]
 }
 
 variable "hosted_zone_id" {
   type    = string
-  default = null
+  default = null # 예: "Z123ABC..."
 }
 
 variable "hosted_zone_arn" {
   type    = string
-  default = null
+  default = null # 없으면 id로 계산
 }
 
 # 동작 옵션
 variable "sources" {
   type    = list(string)
-  default = ["ingress"]
+  default = ["ingress"] # ingress, service 등
 }
 
 variable "policy" {
@@ -54,7 +54,7 @@ variable "registry" {
 
 variable "txt_owner_id" {
   type    = string
-  default = null
+  default = null # 기본값은 main.tf에서 생성
 }
 
 variable "chart_version" {
@@ -62,7 +62,15 @@ variable "chart_version" {
   default = "1.15.0"
 }
 
-variable "common_tags" {
+variable "tags" {
   type    = map(string)
   default = {}
+}
+
+variable "vpce_sts_sg_id" {
+  description = "STS VPC Endpoint Security Group ID"
+  type        = string
+}
+variable "node_group_security_group_id" {
+  description = "EKS NodeGroup SG ID"
 }

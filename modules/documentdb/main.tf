@@ -3,7 +3,7 @@ resource "aws_docdb_cluster" "this" {
   # 기본 설정
   cluster_identifier = "${var.project_name}-${var.environment}-docdb" # 클러스터 식별자
   engine             = "docdb"                                        # DocumentDB 엔진
-  engine_version     = "5.0"
+  engine_version     = "5.0.0"
 
   # 인증 정보
   master_username = var.db_username
