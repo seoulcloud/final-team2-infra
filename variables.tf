@@ -296,3 +296,9 @@ variable "github_username" {
   type        = string
   default     = ""
 }
+
+variable "enable_k8s_addons" {
+  description = "쿠버네티스/헬름 리소스 생성 여부 (클러스터 없을 땐 false)"
+  type        = bool
+  default     = false
+}

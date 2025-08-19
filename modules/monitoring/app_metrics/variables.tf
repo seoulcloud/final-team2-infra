@@ -33,3 +33,8 @@ variable "prom_release_label" {
   description = "kube-prometheus-stack의 release 라벨 값"
   type        = string
 }
+
+variable "enabled" {
+  type    = bool
+  default = true
+}

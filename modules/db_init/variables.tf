@@ -91,3 +91,9 @@ variable "sql_pgvector" {
   type        = string
   default     = null
 }
+
+variable "enabled" {
+  description = "이 모듈의 쿠버네티스 리소스 생성 여부"
+  type        = bool
+  default     = true
+}
