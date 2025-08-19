@@ -14,7 +14,7 @@ resource "kubernetes_namespace" "monitoring" {
 
 module "prometheus" {
   source            = "./modules/monitoring/prometheus"
-  namespace         = var.monitoring_namespace
+  namespace         = kubernetes_namespace.monitoring.metadata[0].name
   chart_version     = "56.6.2"
 
   # Postgres Exporter 추가 설정
