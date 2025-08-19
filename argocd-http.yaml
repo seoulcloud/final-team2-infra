@@ -10,7 +10,6 @@ metadata:
   name: argocd-server
   namespace: argocd
   annotations:
-    kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
@@ -21,6 +20,7 @@ metadata:
     alb.ingress.kubernetes.io/security-groups: "sg-0cbe8488140e2e453"
     external-dns.alpha.kubernetes.io/hostname: argocd.goteego.store
 spec:
+  ingressClassName: alb
   rules:
   - host: argocd.goteego.store
     http:
