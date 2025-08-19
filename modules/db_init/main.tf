@@ -30,6 +30,7 @@ locals {
 
 # Flyway SQL을 담는 ConfigMap (비밀값 없음)
 resource "kubernetes_config_map" "flyway_sql" {
+  count = var.enabled ? 1 : 0
   metadata {
     name      = "${local.job_name}-sql"
     namespace = var.namespace
@@ -44,6 +45,7 @@ resource "kubernetes_config_map" "flyway_sql" {
 
 # DB 접속 및 placeholder 값은 Secret로 (민감정보)
 resource "kubernetes_secret" "flyway_db" {
+  count = var.enabled ? 1 : 0
   metadata {
     name      = "${local.job_name}-secret"
     namespace = var.namespace
@@ -66,6 +68,7 @@ resource "kubernetes_secret" "flyway_db" {
 
 # Flyway Kubernetes Job (한번 실행)
 resource "kubernetes_manifest" "flyway_job" {
+  count = var.enabled ? 1 : 0
   manifest = {
     apiVersion = "batch/v1"
     kind       = "Job"
@@ -95,13 +98,13 @@ resource "kubernetes_manifest" "flyway_job" {
 
               # Secret에서 환경변수 주입 (DB 접속 & placeholders)
               env = [
-                { name = "DB_HOST",           valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db.metadata[0].name, key = "DB_HOST" } } },
-                { name = "DB_PORT",           valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db.metadata[0].name, key = "DB_PORT" } } },
-                { name = "DB_NAME",           valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db.metadata[0].name, key = "DB_NAME" } } },
-                { name = "DB_USER",           valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db.metadata[0].name, key = "DB_USER" } } },
-                { name = "DB_PASSWORD",       valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db.metadata[0].name, key = "DB_PASSWORD" } } },
-                { name = "EXPORTER_USER",     valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db.metadata[0].name, key = "EXPORTER_USER" } } },
-                { name = "EXPORTER_PASSWORD", valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db.metadata[0].name, key = "EXPORTER_PASSWORD" } } },
+                { name = "DB_HOST",           valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db[count.index].metadata[0].name, key = "DB_HOST" } } },
+                { name = "DB_PORT",           valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db[count.index].metadata[0].name, key = "DB_PORT" } } },
+                { name = "DB_NAME",           valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db[count.index].metadata[0].name, key = "DB_NAME" } } },
+                { name = "DB_USER",           valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db[count.index].metadata[0].name, key = "DB_USER" } } },
+                { name = "DB_PASSWORD",       valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db[count.index].metadata[0].name, key = "DB_PASSWORD" } } },
+                { name = "EXPORTER_USER",     valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db[count.index].metadata[0].name, key = "EXPORTER_USER" } } },
+                { name = "EXPORTER_PASSWORD", valueFrom = { secretKeyRef = { name = kubernetes_secret.flyway_db[count.index].metadata[0].name, key = "EXPORTER_PASSWORD" } } },
                 { name = "CONNECT_RETRIES",   value      = tostring(var.connect_retries) }
               ]
 
@@ -130,8 +133,7 @@ resource "kubernetes_manifest" "flyway_job" {
           volumes = [
             {
               name      = "sql"
-              configMap = { name = kubernetes_config_map.flyway_sql.metadata[0].name }
-            }
+              configMap = { name = kubernetes_config_map.flyway_sql[count.index].metadata[0].name }            }
           ]
         }
       }

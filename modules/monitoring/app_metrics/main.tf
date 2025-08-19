@@ -23,6 +23,7 @@ resource "kubernetes_service" "app" {
 }
 
 resource "kubernetes_manifest" "servicemonitor" {
+  count = var.enabled ? 1 : 0
   manifest = {
     apiVersion = "monitoring.coreos.com/v1"
     kind       = "ServiceMonitor"
