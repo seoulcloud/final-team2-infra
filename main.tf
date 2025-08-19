@@ -103,6 +103,7 @@ module "rds" {
   # DB 정보
   db_name              = var.project_name
   db_username          = var.project_name
+  db_exporter_username = var.rds_db_exporter_user
   db_password          = var.db_password_postgresql
   parameter_group_name = "default.postgres14"
 
@@ -113,9 +114,34 @@ module "rds" {
   # 네트워크 설정
   db_subnet_group_name   = module.vpc.db_subnet_group_name
   vpc_security_group_ids = [module.vpc.postgresql_sg_id]
+  postgresql_security_group_id = module.vpc.postgresql_sg_id
+  node_group_security_group_id = module.eks.node_group_security_group_id
 
   # 태그
   tags = var.common_tags
+}
+
+module "db_init" {
+  source    = "./modules/db_init"
+
+  namespace = "backend-dev"                        # Job을 어디서 돌릴지
+  app_suffix= "backend"
+
+  db_host   = module.rds.db_instance_endpoint # 호스트만 넘기는 output (예: cx482c6...rds.amazonaws.com)
+  db_port   = "5432"
+  db_name   = var.project_name
+  db_user   = var.project_name                     # 마스터 유저(초기화는 마스터로 수행)
+  db_password = var.db_password_postgresql
+
+  exporter_user     = var.rds_db_exporter_user
+  exporter_password = var.db_password_postgresql   # 필요시 다른 비번 변수로 분리
+
+  depends_on = [
+    module.eks,                                     # K8s 연결 가능
+    module.rds,                                     # RDS 준비
+    module.argocd,               # (있다면) 네임스페이스
+    module.kubernetes_secrets_dev                   # (있다면) DB 비밀번호 등 시크릿
+  ]
 }
 
 # DocumentDB Cluster Module
@@ -146,7 +172,6 @@ module "documentdb" {
 }
 
 ## SSM Parameter 등록 ====== test
-
 resource "aws_ssm_parameter" "db_password_postgresql" {
   name       = "/${var.project_name}/${var.environment}/db_password_postgresql"
   type       = "SecureString" # 암호화 저장
@@ -165,20 +190,13 @@ resource "aws_ssm_parameter" "db_password_mongodb" {
   depends_on = [module.documentdb]
 }
 
-
-
 # OAC ===========
-
 # OAC 생성
 module "cloudfront_oac" {
   source      = "./modules/cloudfront_oac"
   name        = "${var.project_name}-${var.environment}-oac"
   description = "OAC for CloudFront"
 }
-
-# output "oac_id" {
-#   value = module.cloudfront_oac.oac_id
-# }
 
 #s3======================
 
@@ -188,7 +206,6 @@ module "s3_frontend_prod" {
   prefix      = "prod"
   bucket_name = "${var.project_name}-frontend"
 }
-
 
 resource "aws_s3_bucket_policy" "frontend_policy" {
   bucket = module.s3_frontend_prod.bucket_id
@@ -216,30 +233,7 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
   ]
 }
 
-
-# s3_backend (prod 환경)  -> 백엔드에서 s3 사용 안함
-# module "s3_backend_prod" {
-#   source         = "./modules/s3_backend"
-#   prefix         = "prod"
-#   bucket_name    = "${var.project_name}-backend"
-#   lifecycle_days = 30
-# }
-
-# output "frontend_bucket_name" {
-#   value = module.s3_frontend_prod.bucket_name
-# }
-
-# output "backend_bucket_name" {
-#   value = module.s3_backend_prod.bucket_name
-# }
-
-
-
-
-#========================
-
-#cloud_front
-
+# cloud_front ========================
 module "cloudfront_prod" {
   source                = "./modules/cloudfront"
   prefix                = "prod"
@@ -278,43 +272,7 @@ module "acm_kor_dns_validation" {
   ]
 }
 
-# ExternalDNS to manage Route53 records from Ingress
-module "external_dns" {
-  source = "./modules/external-dns"
-
-  project_name = var.project_name
-  environment  = var.environment
-  namespace    = "kube-system"
-
-  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
-  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
-
-  domain_filters = [var.domain_name]
-  hosted_zone_id = aws_route53_zone.main.zone_id
-  sources        = ["ingress"]
-  policy         = "upsert-only"
-  registry       = "txt"
-
-  common_tags = var.common_tags
-
-  depends_on = [module.eks, aws_route53_zone.main]
-}
-
-# output "cloudfront_url" {
-#   value = module.cloudfront_prod.domain_name
-# }
-
-# output "cloudfront_id" {
-#   value = module.cloudfront_prod.distribution_id
-# }
-
-# output "cloudfront_domain_name" {
-#   value = module.cloudfront_prod.domain_name
-#   description = "CloudFront 배포 도메인 네임 (예: dxxxxx.cloudfront.net)"
-# }
-#========================
-#static_site
-
+# static_site ========================
 module "web_hosting" {
   source     = "./modules/web_hosting"
   bucket_id  = module.s3_frontend_prod.bucket_id
@@ -330,7 +288,6 @@ provider "aws" {
 }
 
 # Route53 존 생성 (최상위, 독립)
-
 resource "aws_route53_zone" "main" {
   name = var.domain_name # "goteego.store" 대신 변수 사용
 }
@@ -358,8 +315,6 @@ module "acm_us_east_1_dns_validation" {
     module.acm_cert
   ]
 }
-
-
 
 # Backend API IRSA
 module "backend_api_irsa" {
@@ -435,7 +390,6 @@ module "kubernetes_secrets_prod" {
   ]
 }
 
-
 # Route53 레코드 (CloudFront 도메인)
 resource "aws_route53_record" "root" {
   zone_id = aws_route53_zone.main.zone_id
@@ -494,6 +448,34 @@ resource "aws_route53_record" "redis_endpoint" {
   records = [module.elasticache.primary_endpoint_address] # ElastiCache 모듈 output
 }
 
+# ExternalDNS to manage Route53 records from Ingress
+module "external_dns" {
+  source = "./modules/external_dns"
+
+  project_name              = var.project_name
+  environment               = var.environment
+  namespace                 = "kube-system"
+
+  cluster_oidc_provider_arn = module.eks.cluster_oidc_provider_arn
+  cluster_oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+
+  node_group_security_group_id = module.eks.node_group_security_group_id
+  vpce_sts_sg_id = module.vpc.vpce_sts_sg_id
+  # 관리할 도메인
+  domain_filters = [var.domain_name]    # ["goteego.store"]
+
+  # Route53 Hosted Zone
+  hosted_zone_id            = aws_route53_zone.main.zone_id
+
+  sources                   = ["ingress"]   # ingress 기반 레코드 관리
+  policy                    = "sync" # 삭제 직접 관리 시: "upsert-only"
+  registry                  = "txt"
+  chart_version             = "1.15.0"
+
+  tags = var.common_tags
+
+  depends_on = [module.eks, aws_route53_zone.main]
+}
 # Grafana 외부 접속용 도메인(grafana.goteego.store)
 # resource "aws_route53_record" "grafana" {
 #   zone_id = aws_route53_zone.main.zone_id
@@ -519,6 +501,7 @@ module "elasticache" {
   common_tags        = var.common_tags
   depends_on         = [module.eks]
 }
+
 # redis_auth_parameter
 resource "aws_ssm_parameter" "redis_auth_token" {
   name      = "/${var.project_name}/${var.environment}/redis_auth_token"
@@ -636,11 +619,8 @@ resource "aws_security_group_rule" "allow_alb_to_nodes_tls_443" {
     module.eks
   ]
 }
-
 # EKS 클러스터와 Helm 차트는 Terraform으로 자동 배포됩니다
 # GitOps 설정만 수동으로 진행하면 됩니다
-
-
 
 # ALB Module Outputs moved to outputs.tf
 

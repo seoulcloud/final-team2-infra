@@ -257,11 +257,23 @@ variable "redis_auth_token" {
 }
 
 # Monitoring variables ==========
+variable "monitoring_namespace" {
+  description = "네임스페이스 이름 (Prometheus, Grafana, Loki 등 공통 모니터링 컴포넌트)"
+  type        = string
+  default     = "monitoring"
+}
+
 ## Alert Emails =========
 variable "alert_emails" {
   type        = list(string)
   description = "alert email list"
   default     = [] # 혹은 null로 해도 무방
+}
+
+variable "rds_db_exporter_user" {
+  description = "RDS Monitoring용 DB 사용자 이름"
+  type = string
+  default = "goteego_monitoring"
 }
 
 ## Grafana admin password ==========
