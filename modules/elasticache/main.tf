@@ -26,7 +26,7 @@ resource "aws_elasticache_replication_group" "this" {
   security_group_ids      = var.security_group_ids
 
   # Redis AUTH
-  auth_token = var.redis_auth_token
+  # auth_token = var.redis_auth_token
 
   # 권장 보안 옵션
   at_rest_encryption_enabled = true

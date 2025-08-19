@@ -499,7 +499,7 @@ module "elasticache" {
   security_group_ids = [module.vpc.elasticache_sg_id]
   node_type          = "cache.t3.micro"
   num_cache_nodes    = 1
-  redis_auth_token   = var.redis_auth_token
+  # redis_auth_token   = var.redis_auth_token
   tags        = var.common_tags
   depends_on         = [module.eks]
 }
