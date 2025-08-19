@@ -28,9 +28,9 @@ resource "aws_elasticache_replication_group" "this" {
   # Redis AUTH
   auth_token = var.redis_auth_token
 
-  # 권장 보안 옵션
-  at_rest_encryption_enabled = true
-  transit_encryption_enabled = true
+  # 보안 옵션 - redis tls 설정 제거
+  at_rest_encryption_enabled = false
+  transit_encryption_enabled = false
 
   tags = var.common_tags
 }
