@@ -110,17 +110,19 @@ resource "helm_release" "external_dns" {
   recreate_pods     = false       # ✅ 파드 재시작 보장
 
   # ServiceAccount: IRSA로 만든 SA 재사용
-  set {
-    name  = "serviceAccount.create"
-    value = "false"
-  }
-  set {
-    name  = "serviceAccount.name"
-    value = kubernetes_service_account.externaldns.metadata[0].name
-  }
+  # set {
+  #   name  = "serviceAccount.create"
+  #   value = "false"
+  # }
+  # set {
+  #   name  = "serviceAccount.name"
+  #   value = kubernetes_service_account.externaldns.metadata[0].name
+  # }
 
   values = [
     yamlencode({
+      automountServiceAccountToken = true
+
       provider          = "aws"
       policy            = var.policy
       registry          = var.registry
@@ -129,6 +131,15 @@ resource "helm_release" "external_dns" {
       interval          = "2m"
       triggerLoopOnEvent= true
       logLevel          = "info"
+
+      # SA 재사용 + IRSA (차트에도 동일 값 명시해서 null 방지)
+      serviceAccount = {
+        create                       = false
+        name                         = kubernetes_service_account.externaldns.metadata[0].name
+        automountServiceAccountToken = true
+      }
+
+      rbac = { create = true }
 
       # annotationFilter는 values의 정식 키로 안전하게 전달
       annotationFilter  = "external-dns.goteego/enabled in (true, 'true')"
