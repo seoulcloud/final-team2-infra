@@ -380,6 +380,17 @@ resource "aws_security_group" "node_group" {
   }
 }
 
+# Allow DNS UDP 53 for CoreDNS name resolution
+resource "aws_security_group_rule" "nodegroup_allow_dns_udp_53" {
+  type              = "ingress"
+  from_port         = 53
+  to_port           = 53
+  protocol          = "udp"
+  security_group_id = aws_security_group.node_group.id
+  cidr_blocks       = [var.vpc_cidr] # 또는 필요한 범위로 제한
+  description       = "Allow DNS (UDP 53) for CoreDNS"
+}
+
 # Security group rules for cluster to communicate with nodes
 resource "aws_security_group_rule" "cluster_to_node" {
   type                     = "ingress"
