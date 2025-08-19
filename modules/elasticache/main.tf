@@ -30,7 +30,7 @@ resource "aws_elasticache_replication_group" "this" {
 
   # 권장 보안 옵션
   at_rest_encryption_enabled = true
-  transit_encryption_enabled = true
+  transit_encryption_enabled = false
 
   tags = var.tags
 }
