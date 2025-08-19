@@ -1,64 +1,63 @@
-service:
-  type: ClusterIP
+grafana:
+  service:
+    type: ClusterIP
 
-ingress:
-  enabled: true
-  ingressClassName: alb
-  annotations:
-    alb.ingress.kubernetes.io/scheme: "internet-facing"
-    alb.ingress.kubernetes.io/target-type: "ip"
-    alb.ingress.kubernetes.io/backend-protocol: "HTTP"
-    alb.ingress.kubernetes.io/group.name: "monitoring"
-    alb.ingress.kubernetes.io/healthcheck-path: "/login"
-    alb.ingress.kubernetes.io/success-codes: "200-399"
-    alb.ingress.kubernetes.io/healthcheck-port: "traffic-port"
-
-    external-dns.goteego/enabled: "true"
-  hosts:
-    - grafana.goteego.store # ← 문자열 리스트!
-  path: /
-  pathType: Prefix
-  tls: [] # 추후 HTTPS 시 ACM 연결
-
-podDnsPolicy: ClusterFirst
-podDnsConfig:
-  options:
-    - name: ndots
-      value: "1"
-
-datasources:
-  datasources.yaml:
-    apiVersion: 1
-    datasources:
-      - name: Prometheus
-        type: prometheus
-        url: http://kube-prometheus-stack-prometheus:9090
-        access: proxy
-        isDefault: true
-
-persistence:
-  enabled: false
-
-dashboardProviders:
-  dashboardproviders.yaml:
-    apiVersion: 1
-    providers:
-      - name: "default"
-        orgId: 1
-        folder: ""
-        type: file
-        disableDeletion: false
-        editable: true
-        options:
-          path: /var/lib/grafana/dashboards/default
-
-# 사이드카가 ConfigMap(라벨: grafana_dashboard=1)을 자동으로 읽어 대시보드 로드
-sidecar:
-  dashboards:
+  ingress:
     enabled: true
-    label: grafana_dashboard
-    labelValue: "1"
-    searchNamespace: "monitoring"
-    folder: /var/lib/grafana/dashboards/default
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: "internet-facing"
+      alb.ingress.kubernetes.io/target-type: "ip"
+      alb.ingress.kubernetes.io/backend-protocol: "HTTP"
+      alb.ingress.kubernetes.io/group.name: "monitoring"
+      alb.ingress.kubernetes.io/healthcheck-path: "/login"
+      alb.ingress.kubernetes.io/success-codes: "200-399"
+      alb.ingress.kubernetes.io/healthcheck-port: "traffic-port"
+      external-dns.goteego/enabled: "true"
+    hosts:
+      - grafana.goteego.store
+    path: /
+    pathType: Prefix
+    tls: []
 
-dashboardsConfigMaps: []
+  podDnsPolicy: ClusterFirst
+  podDnsConfig:
+    options:
+      - name: ndots
+        value: "1"
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://kube-prometheus-stack-prometheus:9090
+          access: proxy
+          isDefault: true
+
+  persistence:
+    enabled: false
+
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: "default"
+          orgId: 1
+          folder: ""
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: "monitoring"
+      folder: /var/lib/grafana/dashboards/default
+
+  dashboardsConfigMaps: []
