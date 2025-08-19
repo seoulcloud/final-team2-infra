@@ -101,13 +101,13 @@ resource "helm_release" "external_dns" {
   create_namespace = false
 
   # 설치 안정성 강화
-  wait              = true
+  wait              = false
   timeout           = 900
-  atomic            = true
+  atomic            = false
   cleanup_on_fail   = true
   force_update      = true
   reset_values      = true       # ✅ 기존 값 초기화하고 이번 values만 반영
-  recreate_pods     = true       # ✅ 파드 재시작 보장
+  recreate_pods     = false       # ✅ 파드 재시작 보장
 
   # ServiceAccount: IRSA로 만든 SA 재사용
   set {
