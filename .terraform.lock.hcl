@@ -5,6 +5,7 @@ provider "registry.terraform.io/cyrilgdn/postgresql" {
   version     = "1.25.0"
   constraints = "~> 1.22"
   hashes = [
+    "h1:4Hlupc8gYrPnFKisesXs9lypK6LXslU4L4tjBZOhmiE=",
     "h1:S0Nv3pAGngEqGAniq2y1aINUL9IqftERPNNXJiHCTC8=",
     "zh:0f9db6e1274603d642e96b58eaf6cc4223f7118f2d7ce909dc4812d332cc002a",
     "zh:1819470f0304c6a60b2b51817cb43f6ff59a49e08cc9e50644b86b3a76c91601",
@@ -95,6 +96,7 @@ provider "registry.terraform.io/hashicorp/kubernetes" {
 provider "registry.terraform.io/hashicorp/time" {
   version = "0.13.1"
   hashes = [
+    "h1:+W+DMrVoVnoXo3f3M4W+OpZbkCrUn6PnqDF33D2Cuf0=",
     "h1:ZT5ppCNIModqk3iOkVt5my8b8yBHmDpl663JtXAIRqM=",
     "zh:02cb9aab1002f0f2a94a4f85acec8893297dc75915f7404c165983f720a54b74",
     "zh:04429b2b31a492d19e5ecf999b116d396dac0b24bba0d0fb19ecaefe193fdb8f",
