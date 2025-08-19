@@ -26,7 +26,7 @@ variable "num_cache_nodes" {
   default     = 1
 }
 
-variable "common_tags" {
+variable "tags" {
   type = map(string)
 }
 

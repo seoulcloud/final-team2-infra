@@ -9,7 +9,7 @@ resource "aws_elasticache_subnet_group" "this" {
   name       = "${var.project_name}-${var.environment}-elasticache-subnet-group"
   subnet_ids = var.subnet_ids
 
-  tags = var.common_tags
+  tags = var.tags
 }
 
 # Redis Replication Group
@@ -32,5 +32,5 @@ resource "aws_elasticache_replication_group" "this" {
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
 
-  tags = var.common_tags
+  tags = var.tags
 }

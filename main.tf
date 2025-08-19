@@ -500,7 +500,7 @@ module "elasticache" {
   node_type          = "cache.t3.micro"
   num_cache_nodes    = 1
   redis_auth_token   = var.redis_auth_token
-  common_tags        = var.common_tags
+  tags        = var.common_tags
   depends_on         = [module.eks]
 }
 
