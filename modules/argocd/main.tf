@@ -11,8 +11,10 @@ resource "helm_release" "argocd" {
   values = [
     yamlencode({
       server = {
-        service      = { type = "ClusterIP" }
-        extraArgs    = var.insecure ? ["--insecure"] : []
+        service = {
+          type = "ClusterIP"
+        }
+        extraArgs    = ["--insecure"]
         replicaCount = 1
         ingress = {
           enabled          = true
@@ -24,7 +26,7 @@ resource "helm_release" "argocd" {
             "alb.ingress.kubernetes.io/listen-ports"     = jsonencode([{ HTTP = 80 }, { HTTPS = 443 }])
             "alb.ingress.kubernetes.io/ssl-redirect"     = "443"
             "alb.ingress.kubernetes.io/certificate-arn"  = var.certificate_arn
-            "alb.ingress.kubernetes.io/backend-protocol" = "HTTPS"
+            "alb.ingress.kubernetes.io/backend-protocol" = "HTTP"
             "alb.ingress.kubernetes.io/healthcheck-path" = "/healthz"
             "alb.ingress.kubernetes.io/success-codes"    = "200-399"
             "alb.ingress.kubernetes.io/security-groups"  = var.alb_security_group_id
@@ -36,7 +38,7 @@ resource "helm_release" "argocd" {
         }
       }
       configs = {
-        params = { "server.insecure" = var.insecure }
+        params = { "server.insecure" = true }
         rbac   = { "policy.default" = "role:readonly" }
         cm     = { url = "https://${var.ingress_hostname}" }
         repositories = [
@@ -46,4 +48,4 @@ resource "helm_release" "argocd" {
       applicationSet = { enabled = true }
     })
   ]
-} 
+}
