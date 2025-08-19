@@ -132,7 +132,8 @@ resource "helm_release" "external_dns" {
 
       # annotationFilter는 values의 정식 키로 안전하게 전달
       annotationFilter  = "external-dns.goteego/enabled in (true, 'true')"
-      extraArgs         = ["--aws-evaluate-target-health=false"]
+      # extraArgs         = ["--aws-evaluate-target-health=false"]
+      extraArgs         = []
 
       sources           = var.sources          # 예: ["ingress"]
       domainFilters     = var.domain_filters   # 예: ["grafana.goteego.store", "argocd.goteego.store"]
