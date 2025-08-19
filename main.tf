@@ -605,12 +605,12 @@ module "argocd" {
   ]
 }
 
-# ALB → EKS NodeGroup SG: ArgoCD 서버 targetPort(8080) 허용
-resource "aws_security_group_rule" "allow_alb_to_nodes_argo_8080" {
+# ALB → EKS NodeGroup SG: ArgoCD 서비스 HTTP(80) 허용
+resource "aws_security_group_rule" "allow_alb_to_nodes_argo_http_80" {
   type                     = "ingress"
-  description              = "Allow ALB to reach ArgoCD server on targetPort 8080"
-  from_port                = 8080
-  to_port                  = 8080
+  description              = "Allow ALB to reach ArgoCD service on HTTP port 80"
+  from_port                = 80
+  to_port                  = 80
   protocol                 = "tcp"
   security_group_id        = module.eks.node_group_security_group_id
   source_security_group_id = module.alb.alb_security_group_id
