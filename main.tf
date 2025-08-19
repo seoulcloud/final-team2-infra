@@ -606,6 +606,21 @@ resource "aws_security_group_rule" "allow_alb_to_nodes_argo_http_80" {
   ]
 }
 
+resource "aws_security_group_rule" "allow_alb_to_nodes_argo_target_8080" {
+  type                     = "ingress"
+  description              = "Allow ALB to reach ArgoCD pod via NodePort/TargetPort 8080"
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
+  security_group_id        = module.eks.node_group_security_group_id
+  source_security_group_id = module.alb.alb_security_group_id
+
+  depends_on = [
+    module.alb,
+    module.eks
+  ]
+}
+
 # ALB → EKS NodeGroup SG: TLS(443) 허용
 resource "aws_security_group_rule" "allow_alb_to_nodes_tls_443" {
   type                     = "ingress"
