@@ -1,0 +1,33 @@
+server:
+  service:
+    type: ClusterIP
+  extraArgs: []
+  replicaCount: 1
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      kubernetes.io/ingress.class: alb
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+      alb.ingress.kubernetes.io/ssl-redirect: '443'
+      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:YOUR_ACCOUNT_ID:certificate/YOUR_CERT_ID
+      alb.ingress.kubernetes.io/backend-protocol: HTTPS
+      alb.ingress.kubernetes.io/healthcheck-path: /healthz
+      alb.ingress.kubernetes.io/success-codes: '200-399'
+      alb.ingress.kubernetes.io/security-groups: sg-YOUR_SECURITY_GROUP_ID
+      external-dns.alpha.kubernetes.io/hostname: argocd.goteego.store
+    hostname: argocd.goteego.store
+    paths: ['/']
+configs:
+  params:
+    server.insecure: false
+  rbac:
+    policy.default: role:readonly
+  cm:
+    url: https://argocd.goteego.store
+  repositories:
+    - url: https://github.com/CLD-3rd/final-team2-manifest.git
+applicationSet:
+  enabled: true

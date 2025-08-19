@@ -73,21 +73,9 @@ output "alb_controller_status" {
   description = "AWS Load Balancer Controller installation status"
   value       = "AWS Load Balancer Controller installed with IRSA support"
 }
-# OAC ====================
-# output "oac_id" {
-#   value = module.cloudfront_oac.oac_id
-# }
 
-# CloudFront =============
-# output "cloudfront_url" {
-#   value = module.cloudfront_prod.domain_name
-# }
-
-# output "cloudfront_id" {
-#   value = module.cloudfront_prod.distribution_id
-# }
-
-# output "cloudfront_domain_name" {
-#   value = module.cloudfront_prod.domain_name
-#   description = "CloudFront 배포 도메인 네임 (예: dxxxxx.cloudfront.net)"
-# }
+# Route53 Zone ID
+output "route53_zone_id" {
+  description = "Route53 Hosted Zone ID"
+  value       = aws_route53_zone.main.zone_id
+}
