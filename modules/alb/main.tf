@@ -445,3 +445,55 @@ resource "helm_release" "aws_load_balancer_controller" {
 
 
 } 
+
+
+# # alb 조회 (tag 기반)
+
+# # ALB Controller가 생성한 ALB 조회
+# data "aws_lb" "my_service_alb" {
+#   tags = {
+#     "kubernetes.io/service-name" = "hpa-test-external-svc"
+#     "kubernetes.io/namespace"    = "autoscale-dev"
+#   }
+# }
+
+
+# # 특정 서비스  Target Group 조회
+
+# data "aws_lb_target_group" "my_service_tg" {
+#   tags = {
+#     "kubernetes.io/service-name" = "hpa-test-external-svc"
+#     "kubernetes.io/namespace"    = "autoscale-dev"
+#   }
+# }
+
+# # Listener 조회
+
+# # HTTP Listener 조회
+# data "aws_lb_listener" "http" {
+#   load_balancer_arn = data.aws_lb.my_service_alb.arn
+#   port              = 80
+# }
+
+# # HTTPS Listener 조회
+# data "aws_lb_listener" "https" {
+#   load_balancer_arn = data.aws_lb.my_service_alb.arn
+#   port              = 443
+# }
+
+# # TargetGroup과 Listener 연동
+# resource "aws_lb_listener_rule" "example" {
+#   listener_arn = data.aws_lb_listener.http.arn
+#   priority     = 100
+
+#   action {
+#     type             = "forward"
+#     target_group_arn = data.aws_lb_target_group.my_service_tg.arn
+#   }
+
+#   condition {
+#     path_pattern {
+#       values = ["/hpa-test/*"]
+#     }
+#   }
+# }

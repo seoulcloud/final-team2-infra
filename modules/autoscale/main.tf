@@ -29,6 +29,9 @@ resource "helm_release" "cluster_autoscaler" {
   }
 }
 
+# 현재는 타겟그룹 생성해서 진행 (팀원이 만든걸로 연결예정)
+
+
 
 
 data "template_file" "autoscale_values" {
@@ -45,7 +48,7 @@ data "template_file" "autoscale_values" {
     target_cpu_utilization = 50
     internal_service_name  = "hpa-test-internal-svc"
     external_service_name  = "hpa-test-external-svc"
-    target_group_arn       = aws_lb_target_group.backend.arn # 실제 타겟그룹 alb arn 변경 필요. 예시
+    # target_group_arn       = aws_lb_target_group.backend.arn
   }
 }
 

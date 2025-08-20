@@ -60,3 +60,24 @@ output "alb_sg_id" {
   description = "ALB(Security Group) ID"
   value       = aws_security_group.alb.id
 }
+
+#======================================================
+# ALB DNS 이름 출력
+output "alb_dns_name" {
+  value = data.aws_lb.my_service_alb.dns_name
+}
+
+# Target Group ARN 출력
+output "myapp_target_group_arn" {
+  value = data.aws_lb_target_group.my_service_tg.arn
+}
+
+# HTTPS Listener ARN 출력
+output "https_listener_arn" {
+  value = data.aws_lb_listener.https.arn
+}
+
+# HTTP Listener ARN 출력
+output "http_listener_arn" {
+  value = data.aws_lb_listener.http.arn
+}
