@@ -49,9 +49,9 @@ module "grafana" {
 }
 
 module "app_metrics_backend" {
-  count  = var.enable_k8s_addons ? 1 : 0
+  count  = var.enable_k8s_addons ? 1 : 1
   source = "./modules/monitoring/app_metrics"
-  enabled = var.enable_k8s_addons
+  enabled = true # var.enable_k8s_addons
 
   namespace           = "backend-dev"
   app_name            = "backend-api"
