@@ -1,6 +1,48 @@
 # Data source for current AWS region
 data "aws_region" "current" {}
 
+# Metric Server Helm Chart 설치
+
+resource "helm_release" "metric_server" {
+  name       = "metrics-server"
+  repository = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart      = "metrics-server"
+  namespace  = "kube-system"
+  version    = "5.12.2" # 안정적 최신 버전 선택
+  create_namespace = false
+
+  set {
+    name  = "args"
+    value = "--kubelet-insecure-tls"  # 필요 시 kubelet TLS 검증 비활성화
+  }
+
+  set {
+    name  = "resources.requests.cpu"
+    value = "100m"
+  }
+
+  set {
+    name  = "resources.requests.memory"
+    value = "128Mi"
+  }
+
+  set {
+    name  = "resources.limits.cpu"
+    value = "200m"
+  }
+
+  set {
+    name  = "resources.limits.memory"
+    value = "256Mi"
+  }
+
+}
+
+# 설치 확인용 output
+output "metric_server_status" {
+  value = helm_release.metric_server.status
+}
+
 resource "helm_release" "cluster_autoscaler" {
   name       = "cluster-autoscaler"
   namespace  = "kube-system"
@@ -27,6 +69,10 @@ resource "helm_release" "cluster_autoscaler" {
     name  = "rbac.serviceAccount.name"
     value = "cluster-autoscaler"
   }
+
+    depends_on = [
+    helm_release.metric_server
+  ]
 }
 
 # 특정 서비스  Target Group 조회
