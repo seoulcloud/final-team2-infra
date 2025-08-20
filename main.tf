@@ -650,3 +650,39 @@ module "github_oidc_roles" {
   s3_bucket_name             = module.s3_frontend_prod.bucket_name
   cloudfront_distribution_id = module.cloudfront_prod.distribution_id
 }
+
+
+
+# autoscale ================
+
+module "autoscale" {
+  source        = "./modules/autoscale"
+  cluster_name  = module.eks.cluster_name
+  project_name              = var.project_name
+  environment               = var.environment
+ # alb_arn              = module.alb.alb_arn       
+ # alb_target_group_arn = module.alb.backend_tg_arn  
+
+depends_on = [ module.eks, module.alb ]
+}
+
+
+
+
+data "kubernetes_service" "hpa_service" {
+  metadata {
+    name      = "hpa-test-external-svc"
+    namespace = "autoscale-dev"
+  }
+  depends_on = [module.autoscale, module.alb]
+}
+
+# AutoScaling HPA
+resource "aws_route53_record" "autoscaling" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "hpa.${var.domain_name}"
+  type    = "CNAME"
+  ttl     = 300
+  records = [data.kubernetes_service.hpa_service.status[0].load_balancer[0].ingress[0].hostname]
+  depends_on = [module.autoscale, module.alb]
+}
