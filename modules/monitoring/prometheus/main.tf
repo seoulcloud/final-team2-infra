@@ -56,12 +56,9 @@ resource "helm_release" "postgres_exporter" {
 
   values = [
     yamlencode({
-      env = [
-        {
-          name  = "DATA_SOURCE_NAME"
-          value = "postgresql://${var.rds_db_exporter_user}:${var.rds_db_exporter_password}@${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=disable"
-        }
-      ]
+      config = {
+      datasource = "postgresql://${var.rds_db_exporter_user}:${var.rds_db_exporter_password}@${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=disable"
+    }
 
       # 민감정보는 Secret에서 주입
       envFromSecret = null# kubernetes_secret.postgres_exporter.metadata[0].name
