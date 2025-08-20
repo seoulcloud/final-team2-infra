@@ -9,7 +9,7 @@
         "name": "pod",
         "type": "query",
         "datasource": "Prometheus",
-        "query": "label_values(jvm_memory_used_bytes{namespace=\"backend-dev\", phase=\"Running\", pod!~\"flyway.*\"}, pod)",
+        "query": "label_values(kube_pod_status_phase{namespace=\"backend-dev\", phase=\"Running\", pod!~\"flyway.*\"}, pod)",
         "includeAll": false,
         "multi": false
       }
