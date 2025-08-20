@@ -59,17 +59,12 @@ resource "helm_release" "postgres_exporter" {
       env = [
         {
           name  = "DATA_SOURCE_NAME"
-          valueFrom = {
-            secretKeyRef = {
-              name = kubernetes_secret.postgres_exporter.metadata[0].name
-              key  = "DATA_SOURCE_NAME"
-            }
-          }
+          value = "postgresql://${var.rds_db_exporter_user}:${var.rds_db_exporter_password}@${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=disable"
         }
       ]
 
       # 민감정보는 Secret에서 주입
-      envFromSecret = kubernetes_secret.postgres_exporter.metadata[0].name
+      envFromSecret = null# kubernetes_secret.postgres_exporter.metadata[0].name
 
       # ServiceMonitor를 만들어 kube-prometheus-stack이 자동 스크레이프
       serviceMonitor = {
