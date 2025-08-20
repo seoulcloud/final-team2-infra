@@ -55,13 +55,16 @@ resource "helm_release" "postgres_exporter" {
   chart      = "prometheus-postgres-exporter"
   version    = var.postgres_exporter_chart_version
   namespace  = var.namespace
+  force_update = true
 
   values = [
     yamlencode({
-      existingSecret = {
-        enabled = true
-        name    = kubernetes_secret.postgres_exporter_config.metadata[0].name
-      }
+      config = {
+        existingSecret = {
+          enabled = true
+          name    = kubernetes_secret.postgres_exporter_config.metadata[0].name
+        }
+      },
       # 민감정보는 Secret에서 주입
       # envFromSecret = kubernetes_secret.postgres_exporter.metadata[0].name
 
