@@ -1,28 +1,6 @@
 locals {
   # SQL에 비밀값(계정/비밀번호) 직접 넣지 말고 Flyway placeholder만 둠
-  v1_init_sql = coalesce(
-    var.sql_init,
-    <<-SQL
-    -- Exporter 유저 생성 & 권한 (비밀번호/유저명은 placeholder)
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${exporter_user}') THEN
-        EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', '${exporter_user}', '${exporter_password}');
-      END IF;
-    END $$;
-
-    GRANT pg_monitor TO "${exporter_user}";
-    GRANT CONNECT ON DATABASE "${db_name}" TO "${exporter_user}";
-    SQL
-  )
-
-  v2_pgvector_sql = coalesce(
-    var.sql_pgvector,
-    <<-SQL
-    -- pgvector 설치 (idempotent)
-    CREATE EXTENSION IF NOT EXISTS vector;
-    SQL
-  )
+    db_init_sql = file("${path.module}/db_init.sql")
 
   # Job 이름은 환경에 따라 유니크하게
   job_name = var.job_name != "" ? var.job_name : "flyway-init-${var.app_suffix}"
@@ -38,8 +16,7 @@ resource "kubernetes_config_map" "flyway_sql" {
   }
 
   data = {
-    "V1__init.sql"     = local.v1_init_sql
-    "V2__pgvector.sql" = local.v2_pgvector_sql
+    "V1__init.sql"     = local.db_init_sql
   }
 }
 
