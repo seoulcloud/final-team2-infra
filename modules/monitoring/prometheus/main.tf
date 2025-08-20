@@ -21,24 +21,28 @@ resource "helm_release" "prometheus" {
   depends_on = [var.depends_on_module]
 }
 
-########################
-# Postgres Exporter Secret
-########################
-resource "kubernetes_secret" "postgres_exporter" {
+resource "kubernetes_secret" "postgres_exporter_config" {
   metadata {
-    name      = "postgres-exporter-secret"
+    name      = "postgres-exporter-config-secret"
     namespace = var.namespace
-    labels = {
-      "app.kubernetes.io/name" = "postgres-exporter"
-    }
   }
 
   type = "Opaque"
 
   data = {
-    DATA_SOURCE_URI  = base64encode("${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=disable")
-    DATA_SOURCE_USER = base64encode(var.rds_db_exporter_user)
-    DATA_SOURCE_PASS = base64encode(var.rds_db_exporter_password)
+    "postgres_exporter.yml" = base64encode(yamlencode({
+      global = {
+        scrape_interval = "15s"
+      }
+      datasource = {
+        host     = var.rds_endpoint
+        user     = var.rds_db_exporter_user
+        password = var.rds_db_exporter_password
+        port     = 5432
+        dbname   = var.rds_db_name
+        sslmode  = "disable"
+      }
+    }))
   }
 }
 
@@ -54,15 +58,9 @@ resource "helm_release" "postgres_exporter" {
 
   values = [
     yamlencode({
-      config = {
-        datasource = {
-          host     = var.rds_endpoint
-          port     = "5432"
-          user     = var.rds_db_exporter_user
-          dbname   = var.rds_db_name
-          sslmode  = "disable"
-          password = var.rds_db_exporter_password
-        }
+      existingSecret = {
+        enabled = true
+        name    = kubernetes_secret.postgres_exporter_config.metadata[0].name
       }
       # 민감정보는 Secret에서 주입
       # envFromSecret = kubernetes_secret.postgres_exporter.metadata[0].name
@@ -88,6 +86,27 @@ resource "helm_release" "postgres_exporter" {
 
   depends_on = [
     helm_release.prometheus,
-    kubernetes_secret.postgres_exporter,
+    kubernetes_secret.postgres_exporter_config,
   ]
 }
+
+########################
+# Postgres Exporter Secret
+########################
+# resource "kubernetes_secret" "postgres_exporter" {
+#   metadata {
+#     name      = "postgres-exporter-secret"
+#     namespace = var.namespace
+#     labels = {
+#       "app.kubernetes.io/name" = "postgres-exporter"
+#     }
+#   }
+
+#   type = "Opaque"
+
+#   data = {
+#     DATA_SOURCE_URI  = base64encode("${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=disable")
+#     DATA_SOURCE_USER = base64encode(var.rds_db_exporter_user)
+#     DATA_SOURCE_PASS = base64encode(var.rds_db_exporter_password)
+#   }
+# }
