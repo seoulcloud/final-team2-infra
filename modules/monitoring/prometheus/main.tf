@@ -36,11 +36,9 @@ resource "kubernetes_secret" "postgres_exporter" {
   type = "Opaque"
 
   data = {
-    DATA_SOURCE_NAME = base64encode(
-      "postgresql://${var.rds_db_exporter_user}:${var.rds_db_exporter_password}@${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=disable"
-    )   
-    # DATA_SOURCE_USER = base64encode(var.rds_db_exporter_user)
-    # DATA_SOURCE_PASS = base64encode(var.rds_db_exporter_password)
+    DATA_SOURCE_URI  = base64encode("${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=disable")
+    DATA_SOURCE_USER = base64encode(var.rds_db_exporter_user)
+    DATA_SOURCE_PASS = base64encode(var.rds_db_exporter_password)
   }
 }
 
@@ -56,19 +54,8 @@ resource "helm_release" "postgres_exporter" {
 
   values = [
     yamlencode({
-      config = {
-        datasource = null  # 기본값 무력화
-      }
-
-      extraEnv = [
-        {
-          name  = "DATA_SOURCE_NAME"
-          value = "postgresql://${var.rds_db_exporter_user}:${var.rds_db_exporter_password}@${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=disable"
-        }
-      ]
-
       # 민감정보는 Secret에서 주입
-      envFromSecret = null# kubernetes_secret.postgres_exporter.metadata[0].name
+      envFromSecret = kubernetes_secret.postgres_exporter.metadata[0].name
 
       # ServiceMonitor를 만들어 kube-prometheus-stack이 자동 스크레이프
       serviceMonitor = {
