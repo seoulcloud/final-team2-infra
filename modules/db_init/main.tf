@@ -149,31 +149,31 @@ resource "kubernetes_manifest" "flyway_job" {
   }
 }
 
-resource "null_resource" "wait_for_flyway_job" {
-  count = var.enabled ? 1 : 0
+# resource "null_resource" "wait_for_flyway_job" {
+#   count = var.enabled ? 1 : 0
 
-  provisioner "local-exec" {
-    command = <<EOT
-      #!/bin/bash
-      set -e
+#   provisioner "local-exec" {
+#     command = <<EOT
+#       #!/bin/bash
+#       set -e
 
-      echo "[INFO] Waiting for Flyway job to complete..."
+#       echo "[INFO] Waiting for Flyway job to complete..."
 
-      for i in {1..30}; do
-        status=$(kubectl -n ${var.namespace} get job ${local.job_name} -o jsonpath='{.status.succeeded}' || echo "0")
-        if [ "$status" == "1" ]; then
-          echo "[INFO] Flyway job completed successfully."
-          exit 0
-        fi
-        echo "[INFO] Waiting for job... ($i/30)"
-        sleep 10
-      done
+#       for i in {1..30}; do
+#         status=$(kubectl -n ${var.namespace} get job ${local.job_name} -o jsonpath='{.status.succeeded}' || echo "0")
+#         if [ "$status" == "1" ]; then
+#           echo "[INFO] Flyway job completed successfully."
+#           exit 0
+#         fi
+#         echo "[INFO] Waiting for job... ($i/30)"
+#         sleep 10
+#       done
 
-      echo "[ERROR] Timeout waiting for Flyway job to succeed"
-      exit 1
-    EOT
-    interpreter = ["/bin/bash", "-c"]
-  }
+#       echo "[ERROR] Timeout waiting for Flyway job to succeed"
+#       exit 1
+#     EOT
+#     interpreter = ["/bin/bash", "-c"]
+#   }
 
-  depends_on = [kubernetes_manifest.flyway_job]
-}
+#   depends_on = [kubernetes_manifest.flyway_job]
+# }
