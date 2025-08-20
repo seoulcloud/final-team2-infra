@@ -54,7 +54,7 @@ resource "helm_release" "postgres_exporter" {
 
   values = [
     yamlencode({
-      env = [
+      extraEnv = [
         {
           name = "DATA_SOURCE_URI"
           value = "${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=disable"
