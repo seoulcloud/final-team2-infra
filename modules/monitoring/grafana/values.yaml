@@ -17,55 +17,54 @@ ingress:
   pathType: Prefix
   tls: []
 
-grafana:
-  service:
-    type: ClusterIP
+service:
+  type: ClusterIP
 
-  podDnsPolicy: ClusterFirst
-  podDnsConfig:
-    options:
-      - name: ndots
-        value: "1"
+podDnsPolicy: ClusterFirst
+podDnsConfig:
+  options:
+    - name: ndots
+      value: "1"
 
-  persistence:
-    enabled: false
+persistence:
+  enabled: false
 
-  grafana.ini:
-    security:
-      admin_api_enabled: true
+grafana.ini:
+  security:
+    admin_api_enabled: true
 
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-        - name: Prometheus
-          type: prometheus
-          url: http://kube-prometheus-stack-prometheus:9090
-          access: proxy
-          isDefault: true
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://kube-prometheus-stack-prometheus:9090
+        access: proxy
+        isDefault: true
 
-  dashboardProviders:
-    dashboardproviders.yaml:
-      apiVersion: 1
-      providers:
-        - name: "default"
-          orgId: 1
-          folder: ""
-          type: file
-          disableDeletion: false
-          editable: true
-          options:
-            path: /var/lib/grafana/dashboards/default
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: "default"
+        orgId: 1
+        folder: ""
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
 
-  sidecar:
-    dashboards:
-      enabled: true
-      label: grafana_dashboard
-      labelValue: "1"
-      searchNamespace: "monitoring"
-      folder: /var/lib/grafana/dashboards/default
-      env:
-        - name: GF_SECURITY_ADMIN_API_ENABLED
-          value: "true"
+sidecar:
+  dashboards:
+    enabled: true
+    label: grafana_dashboard
+    labelValue: "1"
+    searchNamespace: "monitoring"
+    folder: /var/lib/grafana/dashboards/default
+    env:
+      - name: GF_SECURITY_ADMIN_API_ENABLED
+        value: "true"
 
-  dashboardsConfigMaps: []
+dashboardsConfigMaps: []
