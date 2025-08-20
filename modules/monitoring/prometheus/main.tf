@@ -36,9 +36,11 @@ resource "kubernetes_secret" "postgres_exporter" {
   type = "Opaque"
 
   data = {
-    # chart가 envFromSecret로 읽어감
-    DATA_SOURCE_USER = base64encode(var.rds_db_exporter_user)
-    DATA_SOURCE_PASS = base64encode(var.rds_db_exporter_password)
+    DATA_SOURCE_NAME = base64encode(
+      "postgresql://${var.rds_db_exporter_user}:${var.rds_db_exporter_password}@${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=disable"
+    )   
+    # DATA_SOURCE_USER = base64encode(var.rds_db_exporter_user)
+    # DATA_SOURCE_PASS = base64encode(var.rds_db_exporter_password)
   }
 }
 
@@ -58,15 +60,6 @@ resource "helm_release" "postgres_exporter" {
         # 필요 시 고정 버전 사용 가능 (예: "v0.15.0")
         # tag = "v0.15.0"
       }
-
-      # exporter가 사용할 환경변수
-      env = [
-        {
-          name  = "DATA_SOURCE_URI"
-          # RDS 엔드포인트:포트/DB명 + TLS 필수
-          value = "${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=require"
-        }
-      ]
 
       # 민감정보는 Secret에서 주입
       envFromSecret = kubernetes_secret.postgres_exporter.metadata[0].name
