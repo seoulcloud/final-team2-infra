@@ -122,9 +122,9 @@ module "rds" {
 }
 
 module "db_init" {
-  count  = var.enable_k8s_addons ? 1 : 0
+  count  = var.enable_k8s_addons ? 1 : 1
   source    = "./modules/db_init"
-  enabled = var.enable_k8s_addons
+  enabled = true # var.enable_k8s_addons
 
   namespace = "backend-dev"                        # Job을 어디서 돌릴지
   app_suffix= "backend"
@@ -499,8 +499,8 @@ module "elasticache" {
   security_group_ids = [module.vpc.elasticache_sg_id]
   node_type          = "cache.t3.micro"
   num_cache_nodes    = 1
-  redis_auth_token   = var.redis_auth_token
-  common_tags        = var.common_tags
+  # redis_auth_token   = var.redis_auth_token
+  tags        = var.common_tags
   depends_on         = [module.eks]
 }
 
@@ -596,6 +596,21 @@ resource "aws_security_group_rule" "allow_alb_to_nodes_argo_http_80" {
   description              = "Allow ALB to reach ArgoCD service on HTTP port 80"
   from_port                = 80
   to_port                  = 80
+  protocol                 = "tcp"
+  security_group_id        = module.eks.node_group_security_group_id
+  source_security_group_id = module.alb.alb_security_group_id
+
+  depends_on = [
+    module.alb,
+    module.eks
+  ]
+}
+
+resource "aws_security_group_rule" "allow_alb_to_nodes_argo_target_8080" {
+  type                     = "ingress"
+  description              = "Allow ALB to reach ArgoCD pod via NodePort/TargetPort 8080"
+  from_port                = 8080
+  to_port                  = 8080
   protocol                 = "tcp"
   security_group_id        = module.eks.node_group_security_group_id
   source_security_group_id = module.alb.alb_security_group_id

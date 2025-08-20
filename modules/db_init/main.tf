@@ -1,28 +1,6 @@
 locals {
   # SQL에 비밀값(계정/비밀번호) 직접 넣지 말고 Flyway placeholder만 둠
-  v1_init_sql = coalesce(
-    var.sql_init,
-    <<-SQL
-    -- Exporter 유저 생성 & 권한 (비밀번호/유저명은 placeholder)
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$${exporter_user}') THEN
-        EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', '$${exporter_user}', '$${exporter_password}');
-      END IF;
-    END $$;
-
-    GRANT pg_monitor TO "$${exporter_user}";
-    GRANT CONNECT ON DATABASE "$${db_name}" TO "$${exporter_user}";
-    SQL
-  )
-
-  v2_pgvector_sql = coalesce(
-    var.sql_pgvector,
-    <<-SQL
-    -- pgvector 설치 (idempotent)
-    CREATE EXTENSION IF NOT EXISTS vector;
-    SQL
-  )
+    db_init_sql = file("${path.module}/db_init.sql")
 
   # Job 이름은 환경에 따라 유니크하게
   job_name = var.job_name != "" ? var.job_name : "flyway-init-${var.app_suffix}"
@@ -38,8 +16,7 @@ resource "kubernetes_config_map" "flyway_sql" {
   }
 
   data = {
-    "V1__init.sql"     = local.v1_init_sql
-    "V2__pgvector.sql" = local.v2_pgvector_sql
+    "V1__init.sql"     = local.db_init_sql
   }
 }
 
@@ -54,15 +31,13 @@ resource "kubernetes_secret" "flyway_db" {
 
   type = "Opaque"
   data = {
-    DB_HOST           = base64encode(var.db_host)
-    DB_PORT           = base64encode(var.db_port)
-    DB_NAME           = base64encode(var.db_name)
-    DB_USER           = base64encode(var.db_user)
-    DB_PASSWORD       = base64encode(var.db_password)
-
-    # placeholder 값도 전부 Secret로 주입
-    EXPORTER_USER     = base64encode(var.exporter_user)
-    EXPORTER_PASSWORD = base64encode(var.exporter_password)
+    DB_HOST           = var.db_host
+    DB_PORT           = var.db_port
+    DB_NAME           = var.db_name
+    DB_USER           = var.db_user
+    DB_PASSWORD       = var.db_password
+    EXPORTER_USER     = var.exporter_user
+    EXPORTER_PASSWORD = var.exporter_password
   }
 }
 
@@ -117,7 +92,7 @@ resource "kubernetes_manifest" "flyway_job" {
               args = [<<-EOT
                 set -e
                 flyway \
-                  -url=jdbc:postgresql://$${DB_HOST}:$${DB_PORT}/$${DB_NAME}?sslmode=require \
+                  -url=jdbc:postgresql://$${DB_HOST}:$${DB_PORT}/$${DB_NAME} \
                   -user=$${DB_USER} -password=$${DB_PASSWORD} \
                   -locations=filesystem:/flyway/sql \
                   -placeholders.exporter_user=$${EXPORTER_USER} \
@@ -148,3 +123,32 @@ resource "kubernetes_manifest" "flyway_job" {
     ]
   }
 }
+
+# resource "null_resource" "wait_for_flyway_job" {
+#   count = var.enabled ? 1 : 0
+
+#   provisioner "local-exec" {
+#     command = <<EOT
+#       #!/bin/bash
+#       set -e
+
+#       echo "[INFO] Waiting for Flyway job to complete..."
+
+#       for i in {1..30}; do
+#         status=$(kubectl -n ${var.namespace} get job ${local.job_name} -o jsonpath='{.status.succeeded}' || echo "0")
+#         if [ "$status" == "1" ]; then
+#           echo "[INFO] Flyway job completed successfully."
+#           exit 0
+#         fi
+#         echo "[INFO] Waiting for job... ($i/30)"
+#         sleep 10
+#       done
+
+#       echo "[ERROR] Timeout waiting for Flyway job to succeed"
+#       exit 1
+#     EOT
+#     interpreter = ["/bin/bash", "-c"]
+#   }
+
+#   depends_on = [kubernetes_manifest.flyway_job]
+# }

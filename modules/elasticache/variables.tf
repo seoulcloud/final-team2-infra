@@ -26,15 +26,15 @@ variable "num_cache_nodes" {
   default     = 1
 }
 
-variable "common_tags" {
+variable "tags" {
   type = map(string)
 }
 
-variable "redis_auth_token" {
-  description = "Redis AUTH token (min 16 characters)"
-  type        = string
-  sensitive   = true
-}
+# variable "redis_auth_token" {
+#   description = "Redis AUTH token (min 16 characters)"
+#   type        = string
+#   sensitive   = true
+# }
 
 # variable "security_group_ids" {
 #   description = "List of security group IDs to assign to Elasticache"

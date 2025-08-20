@@ -21,24 +21,28 @@ resource "helm_release" "prometheus" {
   depends_on = [var.depends_on_module]
 }
 
-########################
-# Postgres Exporter Secret
-########################
-resource "kubernetes_secret" "postgres_exporter" {
+resource "kubernetes_secret" "postgres_exporter_config" {
   metadata {
-    name      = "postgres-exporter-secret"
+    name      = "postgres-exporter-config-secret"
     namespace = var.namespace
-    labels = {
-      "app.kubernetes.io/name" = "postgres-exporter"
-    }
   }
 
   type = "Opaque"
 
   data = {
-    # chart가 envFromSecret로 읽어감
-    DATA_SOURCE_USER = base64encode(var.rds_db_exporter_user)
-    DATA_SOURCE_PASS = base64encode(var.rds_db_exporter_password)
+    "postgres_exporter.yml" = base64encode(yamlencode({
+      global = {
+        scrape_interval = "15s"
+      }
+      datasource = {
+        host     = var.rds_endpoint
+        user     = var.rds_db_exporter_user
+        password = var.rds_db_exporter_password
+        port     = 5432
+        dbname   = var.rds_db_name
+        sslmode  = "disable"
+      }
+    }))
   }
 }
 
@@ -51,25 +55,18 @@ resource "helm_release" "postgres_exporter" {
   chart      = "prometheus-postgres-exporter"
   version    = var.postgres_exporter_chart_version
   namespace  = var.namespace
+  force_update = true
 
   values = [
     yamlencode({
-      image = {
-        # 필요 시 고정 버전 사용 가능 (예: "v0.15.0")
-        # tag = "v0.15.0"
-      }
-
-      # exporter가 사용할 환경변수
-      env = [
-        {
-          name  = "DATA_SOURCE_URI"
-          # RDS 엔드포인트:포트/DB명 + TLS 필수
-          value = "${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=require"
+      config = {
+        existingSecret = {
+          enabled = true
+          name    = kubernetes_secret.postgres_exporter_config.metadata[0].name
         }
-      ]
-
+      },
       # 민감정보는 Secret에서 주입
-      envFromSecret = kubernetes_secret.postgres_exporter.metadata[0].name
+      # envFromSecret = kubernetes_secret.postgres_exporter.metadata[0].name
 
       # ServiceMonitor를 만들어 kube-prometheus-stack이 자동 스크레이프
       serviceMonitor = {
@@ -92,6 +89,27 @@ resource "helm_release" "postgres_exporter" {
 
   depends_on = [
     helm_release.prometheus,
-    kubernetes_secret.postgres_exporter,
+    kubernetes_secret.postgres_exporter_config,
   ]
 }
+
+########################
+# Postgres Exporter Secret
+########################
+# resource "kubernetes_secret" "postgres_exporter" {
+#   metadata {
+#     name      = "postgres-exporter-secret"
+#     namespace = var.namespace
+#     labels = {
+#       "app.kubernetes.io/name" = "postgres-exporter"
+#     }
+#   }
+
+#   type = "Opaque"
+
+#   data = {
+#     DATA_SOURCE_URI  = base64encode("${var.rds_endpoint}:5432/${var.rds_db_name}?sslmode=disable")
+#     DATA_SOURCE_USER = base64encode(var.rds_db_exporter_user)
+#     DATA_SOURCE_PASS = base64encode(var.rds_db_exporter_password)
+#   }
+# }

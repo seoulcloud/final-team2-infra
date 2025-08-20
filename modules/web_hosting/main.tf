@@ -16,14 +16,23 @@ resource "aws_s3_bucket_policy" "static_site_policy" {
   bucket = var.bucket_id
 
   policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = "*"
-      Action    = "s3:GetObject"
-      #Resource  = "arn:aws:s3:::${var.bucket_name}/*"
-      Resource = "${var.bucket_arn}/*"
-    }]
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid    = "AllowCloudFrontServiceAccessOnly",
+        Effect = "Allow",
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        },
+        Action   = "s3:GetObject",
+        Resource = "${var.bucket_arn}/*",
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = "arn:aws:cloudfront::194722398200:distribution/E1O23LTYRS9I1"
+          }
+        }
+      }
+    ]
   })
 
   depends_on = [aws_s3_bucket_public_access_block.allow_public]
@@ -40,8 +49,8 @@ resource "aws_s3_bucket_versioning" "static_site_versioning" {
 resource "aws_s3_bucket_public_access_block" "allow_public" {
   bucket = var.bucket_id
 
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
