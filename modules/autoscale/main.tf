@@ -48,7 +48,7 @@ data "template_file" "autoscale_values" {
     target_cpu_utilization = 50
     internal_service_name  = "hpa-test-internal-svc"
     external_service_name  = "hpa-test-external-svc"
-    # target_group_arn       = aws_lb_target_group.backend.arn
+    target_group_arn = lookup(module.alb.backend_tg_arn.*.arn, 0, "")
   }
 }
 
