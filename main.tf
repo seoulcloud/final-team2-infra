@@ -122,9 +122,9 @@ module "rds" {
 }
 
 module "db_init" {
-  count  = var.enable_k8s_addons ? 1 : 1
+  count  = var.enable_k8s_addons ? 1 : 0
   source    = "./modules/db_init"
-  enabled = true # var.enable_k8s_addons
+  enabled = var.enable_k8s_addons
 
   namespace = "backend-dev"                        # Job을 어디서 돌릴지
   app_suffix= "backend"
