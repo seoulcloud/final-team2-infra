@@ -56,6 +56,10 @@ resource "helm_release" "postgres_exporter" {
 
   values = [
     yamlencode({
+      config = {
+        datasource = null  # 기본값 무력화
+      }
+
       extraEnv = [
         {
           name  = "DATA_SOURCE_NAME"
