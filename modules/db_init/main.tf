@@ -54,15 +54,13 @@ resource "kubernetes_secret" "flyway_db" {
 
   type = "Opaque"
   data = {
-    DB_HOST           = base64encode(var.db_host)
-    DB_PORT           = base64encode(var.db_port)
-    DB_NAME           = base64encode(var.db_name)
-    DB_USER           = base64encode(var.db_user)
-    DB_PASSWORD       = base64encode(var.db_password)
-
-    # placeholder 값도 전부 Secret로 주입
-    EXPORTER_USER     = base64encode(var.exporter_user)
-    EXPORTER_PASSWORD = base64encode(var.exporter_password)
+    DB_HOST           = var.db_host
+    DB_PORT           = var.db_port
+    DB_NAME           = var.db_name
+    DB_USER           = var.db_user
+    DB_PASSWORD       = var.db_password
+    EXPORTER_USER     = var.exporter_user
+    EXPORTER_PASSWORD = var.exporter_password
   }
 }
 
@@ -117,7 +115,7 @@ resource "kubernetes_manifest" "flyway_job" {
               args = [<<-EOT
                 set -e
                 flyway \
-                  -url=jdbc:postgresql://$${DB_HOST}:$${DB_PORT}/$${DB_NAME}?sslmode=require \
+                  -url=jdbc:postgresql://$${DB_HOST}:$${DB_PORT}/$${DB_NAME} \
                   -user=$${DB_USER} -password=$${DB_PASSWORD} \
                   -locations=filesystem:/flyway/sql \
                   -placeholders.exporter_user=$${EXPORTER_USER} \
