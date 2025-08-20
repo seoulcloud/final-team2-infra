@@ -56,10 +56,17 @@ resource "helm_release" "postgres_exporter" {
 
   values = [
     yamlencode({
-      image = {
-        # 필요 시 고정 버전 사용 가능 (예: "v0.15.0")
-        # tag = "v0.15.0"
-      }
+      env = [
+        {
+          name  = "DATA_SOURCE_NAME"
+          valueFrom = {
+            secretKeyRef = {
+              name = kubernetes_secret.postgres_exporter.metadata[0].name
+              key  = "DATA_SOURCE_NAME"
+            }
+          }
+        }
+      ]
 
       # 민감정보는 Secret에서 주입
       envFromSecret = kubernetes_secret.postgres_exporter.metadata[0].name
