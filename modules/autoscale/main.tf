@@ -15,7 +15,7 @@ resource "helm_release" "cluster_autoscaler" {
 
   set {
     name  = "awsRegion"
-    value = data.aws_region.current
+    value = data.aws_region.current.name
   }
 
   # IRSA로 만든 ServiceAccount 사용
@@ -29,9 +29,14 @@ resource "helm_release" "cluster_autoscaler" {
   }
 }
 
-# 현재는 타겟그룹 생성해서 진행 (팀원이 만든걸로 연결예정)
+# 특정 서비스  Target Group 조회
 
-
+data "aws_lb_target_group" "my_service_tg" {
+  tags = {
+    "kubernetes.io/service-name" = "hpa-test-external-svc"
+    "kubernetes.io/namespace"    = "autoscale-dev"
+  }
+}
 
 
 data "template_file" "autoscale_values" {
@@ -48,7 +53,8 @@ data "template_file" "autoscale_values" {
     target_cpu_utilization = 50
     internal_service_name  = "hpa-test-internal-svc"
     external_service_name  = "hpa-test-external-svc"
-    target_group_arn = lookup(module.alb.backend_tg_arn.*.arn, 0, "")
+    # target_group_arn = lookup(data.aws_lb_target_group.my_service_tg.*.arn, 0, "")
+    target_group_arn = try(data.aws_lb_target_group.my_service_tg.arn, "")
   }
 }
 
