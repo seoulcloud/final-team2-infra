@@ -49,9 +49,9 @@ module "grafana" {
 }
 
 module "app_metrics_backend" {
-  count  = var.enable_k8s_addons ? 1 : 0
+  count  = var.enable_k8s_addons ? 1 : 1
   source = "./modules/monitoring/app_metrics"
-  enabled = var.enable_k8s_addons
+  enabled = true # var.enable_k8s_addons
 
   namespace           = "backend-dev"
   app_name            = "backend-api"
@@ -59,7 +59,7 @@ module "app_metrics_backend" {
   service_port        = 8080
   service_port_name   = "http"
   prom_path           = "/actuator/prometheus"
-  prom_release_label  = "kube-prometheus-stack"   # 너의 kube-prometheus-stack 라벨값과 일치시켜!
+  prom_release_label  = "kube-prometheus-stack"
 
   # kube-prometheus-stack 헬름릴리즈를 넘겨 CRD 선적용 보장
   depends_on = [module.prometheus]

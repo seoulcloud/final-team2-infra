@@ -375,20 +375,18 @@ resource "aws_security_group" "node_group" {
     Type = "EKS-NodeGroup-SecurityGroup"
   })
 
+  # ✅ DNS for CoreDNS (UDP 53)
+  ingress {
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = [var.vpc_cidr]
+    description = "Allow DNS (UDP 53) for CoreDNS"
+  }
+
   lifecycle {
     create_before_destroy = true
   }
-}
-
-# Allow DNS UDP 53 for CoreDNS name resolution
-resource "aws_security_group_rule" "nodegroup_allow_dns_udp_53" {
-  type              = "ingress"
-  from_port         = 53
-  to_port           = 53
-  protocol          = "udp"
-  security_group_id = aws_security_group.node_group.id
-  cidr_blocks       = [var.vpc_cidr] # 또는 필요한 범위로 제한
-  description       = "Allow DNS (UDP 53) for CoreDNS"
 }
 
 # Security group rules for cluster to communicate with nodes
