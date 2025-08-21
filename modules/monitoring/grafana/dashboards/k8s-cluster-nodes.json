@@ -158,7 +158,8 @@
       "targets": [
         {
           "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\",instance=~\"$instance\"}[$__rate_interval])))",
-          "refId": "A"
+          "refId": "A",
+          "legendFormat": "{{instance}}"
         }
       ]
     },
@@ -171,7 +172,8 @@
       "targets": [
         {
           "expr": "node_memory_MemTotal_bytes{instance=~\"$instance\"} - node_memory_MemAvailable_bytes{instance=~\"$instance\"}",
-          "refId": "A"
+          "refId": "A",
+          "legendFormat": "{{instance}}"
         }
       ]
     },

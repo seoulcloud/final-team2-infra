@@ -9,7 +9,7 @@
         "name": "pod",
         "type": "query",
         "datasource": "Prometheus",
-        "query": "label_values(container_memory_usage_bytes{namespace=\"backend-dev\", phase=\"Running\", pod!~\"flyway.*\"}, pod)",
+        "query": "label_values(container_memory_usage_bytes{namespace=\"backend-dev\", pod!~\"flyway.*\"}, pod)",
         "includeAll": false,
         "multi": false
       }
