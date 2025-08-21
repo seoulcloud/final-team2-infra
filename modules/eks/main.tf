@@ -384,6 +384,15 @@ resource "aws_security_group" "node_group" {
     description = "Allow DNS (UDP 53) for CoreDNS"
   }
 
+  # ALB → EKS 노드 그룹 (Grafana 3000포트)
+  ingress {
+    from_port                = 3000
+    to_port                  = 3000
+    protocol                 = "tcp"
+    security_groups          = [aws_security_group.alb.id] # 또는 var.alb_security_group_id
+    description              = "Allow ALB to reach Grafana"
+  }
+
   lifecycle {
     create_before_destroy = true
   }
