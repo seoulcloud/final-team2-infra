@@ -1,0 +1,18 @@
+# 기본 설정
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+
+# Node Exporter 설정 (EKS 노드 메트릭 수집)
+nodeExporter:
+  enabled: true
+
+# kube-state-metrics 설정 (컨테이너 상태 수집)
+kubeStateMetrics:
+  enabled: true
+
+# Alertmanager 비활성화 (Grafana 알림만 쓸 경우)
+alertmanager:
+  enabled: false

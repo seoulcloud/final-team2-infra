@@ -1,0 +1,10 @@
+[33m61f025e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev[m[33m, [m[1;31morigin/dev[m[33m)[m Merge pull request #25 from CLD-3rd/fix/ci-frontend-role
+[33m71b5eb5[m Merge pull request #24 from CLD-3rd/refator/S3
+[33ma446964[m 수정
+[33m51a76ae[m Merge pull request #23 from CLD-3rd/refator/S3
+[33mb3bab28[m Merge branch 'dev' of https://github.com/CLD-3rd/final-team2-infra into fix/ci-frontend-role
+[33m3a1ad6f[m feat(role): Github Action Role 추가
+[33mb145e1b[m Merge pull request #22 from CLD-3rd/feat/ALB2
+[33m92ca049[m ALB의 SG 설정권한부여
+[33m3ce63ca[m fix : ArgoCD 생성용 리소스 할당 및 타임아웃방지설정
+[33m50ee354[m fix : pod checksum 설정 제거
